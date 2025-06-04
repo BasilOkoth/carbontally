@@ -926,10 +926,11 @@ def main():
         elif page == "My Trees":
             my_trees_page()
 
+# --- Institution Dashboard ---
 def institution_dashboard():
+    st.markdown("<h1 class='header-text'>🏫 Institution Dashboard</h1>", unsafe_allow_html=True)
+    
     institution = st.session_state.user.get("institution", "")
-    header_text = f"🏫 {institution} Dashboard" if institution else "🏫 Institution Dashboard"
-    st.markdown(f"<h1 class='header-text'>{header_text}</h1>", unsafe_allow_html=True)
     
     # Load data
     trees = load_tree_data()
@@ -981,7 +982,6 @@ def institution_dashboard():
         st.plotly_chart(fig)
     else:
         st.info("No trees to display on the map.")
-
 def donor_dashboard():
     """Streamlit dashboard for donors to view tree planting progress"""
     st.title("🌳 Donor Dashboard")
