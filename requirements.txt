@@ -21,5 +21,4 @@ firebase-admin
 # For image and card generation
 matplotlib
 
-# For generating PNGs for "Share Impact" feature
-io
+
