@@ -1,0 +1,25 @@
+# Streamlit core
+streamlit
+
+# Data handling
+pandas
+numpy
+
+# QR code generation
+qrcode
+Pillow
+
+# HTTP requests
+requests
+
+# For working with dates and timestamps
+python-dateutil
+
+# Firebase (optional, only if you're using it)
+firebase-admin
+
+# For image and card generation
+matplotlib
+
+# For generating PNGs for "Share Impact" feature
+io
