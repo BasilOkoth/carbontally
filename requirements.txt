@@ -21,4 +21,5 @@ firebase-admin
 # For image and card generation
 matplotlib
 
+geopy
 
