@@ -13,3 +13,4 @@ folium
 openpyxl
 matplotlib
 paypalrestsdk
+seaborn
