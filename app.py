@@ -32,6 +32,9 @@ from paypalrestsdk import Payment
 import json
 # Import the KoBo integration module
 from kobo_integration import plant_a_tree_section, check_for_new_submissions
+from donor_dashboard import donor_dashboard
+# Import the NEW monitoring module
+from kobo_monitoring import monitoring_section, admin_tree_lookup
 
 # define location
 from geopy.geocoders import Nominatim
@@ -222,14 +225,14 @@ QR_CODE_DIR.mkdir(exist_ok=True, parents=True)
 
 # PayPal Configuration
 PAYPAL_MODE = "sandbox"  # or "live" for production
-PAYPAL_CLIENT_ID = "your_client_id"
-PAYPAL_CLIENT_SECRET = "your_client_secret"
-PAYPAL_WEBHOOK_ID = "your_webhook_id"  # For production
+PAYPAL_CLIENT_ID = st.secrets.get("PAYPAL_CLIENT_ID", "your_client_id")
+PAYPAL_CLIENT_SECRET = st.secrets.get("PAYPAL_CLIENT_SECRET", "your_client_secret")
+PAYPAL_WEBHOOK_ID = st.secrets.get("PAYPAL_WEBHOOK_ID", "your_webhook_id")  # For production
 
 # KoBo Toolbox configuration
 KOBO_API_URL = "https://kf.kobotoolbox.org/api/v2"
-KOBO_API_TOKEN = "your_kobo_api_token"  # Replace with your actual token
-KOBO_ASSET_ID = "your_asset_id"  # Replace with your actual asset ID
+KOBO_API_TOKEN = st.secrets.get("KOBO_API_TOKEN", "your_kobo_api_token")  # Replace with your actual token
+KOBO_ASSET_ID = st.secrets.get("KOBO_ASSET_ID", "your_asset_id")  # Replace with your actual asset ID
 
 # --- Password Hashing ---
 def hash_password(password: str) -> str:
@@ -240,7 +243,8 @@ USER_TYPES = {
     "admin": "Administrator",
     "school": "Institution User",
     "public": "Public Viewer",
-    "field": "Field Agent"
+    "field": "Field Agent",
+    "donor": "Guest Donor"
 }
 
 # --- Database Initialization with Migration ---
@@ -248,6 +252,7 @@ def initialize_data_files():
     DATA_DIR.mkdir(exist_ok=True, parents=True)
     if STORAGE_METHOD == "sqlite":
         init_db()
+
 
 def init_db():
     conn = sqlite3.connect(SQLITE_DB)
@@ -276,7 +281,8 @@ def init_db():
         adopter_name TEXT,
         last_monitored TEXT,
         monitor_notes TEXT,
-        qr_code TEXT
+        qr_code TEXT,
+        kobo_submission_id TEXT UNIQUE
     )""")
     
     c.execute("""CREATE TABLE IF NOT EXISTS species (
@@ -306,6 +312,7 @@ def init_db():
         co2_kg REAL,
         notes TEXT,
         monitor_by TEXT,
+        kobo_submission_id TEXT UNIQUE,
         FOREIGN KEY (tree_id) REFERENCES trees (tree_id)
     )""")
     
@@ -321,6 +328,41 @@ def init_db():
         payment_status TEXT,
         message TEXT,
         FOREIGN KEY (tree_id) REFERENCES trees (tree_id)
+    )""")
+    
+    c.execute("""CREATE TABLE IF NOT EXISTS processed_monitoring_submissions (
+        submission_id TEXT PRIMARY KEY,
+        tree_id TEXT,
+        processed_date TEXT,
+        FOREIGN KEY (tree_id) REFERENCES trees (tree_id)
+    )""")
+    
+    c.execute("""CREATE TABLE IF NOT EXISTS donations (
+        donation_id TEXT PRIMARY KEY,
+        donor_email TEXT,
+        donor_name TEXT,
+        institution TEXT,
+        num_trees INTEGER,
+        amount REAL,
+        currency TEXT,
+        donation_date TEXT,
+        payment_id TEXT,
+        payment_status TEXT,
+        message TEXT
+    )""")
+    
+    c.execute("""CREATE TABLE IF NOT EXISTS donated_trees (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        donation_id TEXT,
+        tree_id TEXT,
+        FOREIGN KEY (donation_id) REFERENCES donations (donation_id),
+        FOREIGN KEY (tree_id) REFERENCES trees (tree_id)
+    )""")
+    
+    c.execute("""CREATE TABLE IF NOT EXISTS institution_qualification (
+        institution TEXT PRIMARY KEY,
+        is_qualified INTEGER DEFAULT 0,
+        last_checked TEXT
     )""")
     
     # Initialize default data
@@ -354,29 +396,47 @@ def init_db():
     init_paypal()
 
 def init_paypal():
-    paypalrestsdk.configure({
-        "mode": PAYPAL_MODE,
-        "client_id": PAYPAL_CLIENT_ID,
-        "client_secret": PAYPAL_CLIENT_SECRET
-    })
+    try:
+        paypalrestsdk.configure({
+            "mode": PAYPAL_MODE,
+            "client_id": PAYPAL_CLIENT_ID,
+            "client_secret": PAYPAL_CLIENT_SECRET
+        })
+    except Exception as e:
+        st.warning(f"PayPal SDK configuration failed: {e}. PayPal features may not work.")
 
 # --- Tree Management Functions ---
 def load_tree_data() -> pd.DataFrame:
     conn = sqlite3.connect(SQLITE_DB)
-    df = pd.read_sql("SELECT * FROM trees", conn)
-    conn.close()
+    try:
+        df = pd.read_sql("SELECT * FROM trees", conn)
+    except Exception as e:
+        st.error(f"Error loading tree data: {e}")
+        df = pd.DataFrame()
+    finally:
+        conn.close()
     return df
 
 def load_species_data() -> pd.DataFrame:
     conn = sqlite3.connect(SQLITE_DB)
-    df = pd.read_sql("SELECT * FROM species", conn)
-    conn.close()
+    try:
+        df = pd.read_sql("SELECT * FROM species", conn)
+    except Exception as e:
+        st.error(f"Error loading species data: {e}")
+        df = pd.DataFrame()
+    finally:
+        conn.close()
     return df
 
 def load_monitoring_history(tree_id: str) -> pd.DataFrame:
     conn = sqlite3.connect(SQLITE_DB)
-    df = pd.read_sql("SELECT * FROM monitoring_history WHERE tree_id = ? ORDER BY monitor_date DESC", conn, params=(tree_id,))
-    conn.close()
+    try:
+        df = pd.read_sql("SELECT * FROM monitoring_history WHERE tree_id = ? ORDER BY monitor_date DESC", conn, params=(tree_id,))
+    except Exception as e:
+        st.error(f"Error loading monitoring history: {e}")
+        df = pd.DataFrame()
+    finally:
+        conn.close()
     return df
 
 def save_tree_data(df: pd.DataFrame) -> bool:
@@ -386,7 +446,7 @@ def save_tree_data(df: pd.DataFrame) -> bool:
         conn.close()
         return True
     except Exception as e:
-        st.error(f"Database error: {e}")
+        st.error(f"Database error saving tree data: {e}")
         return False
 
 def save_species_data(df: pd.DataFrame) -> bool:
@@ -396,7 +456,7 @@ def save_species_data(df: pd.DataFrame) -> bool:
         conn.close()
         return True
     except Exception as e:
-        st.error(f"Database error: {e}")
+        st.error(f"Database error saving species data: {e}")
         return False
 
 def add_monitoring_record(tree_id: str, data: dict) -> bool:
@@ -425,7 +485,7 @@ def add_monitoring_record(tree_id: str, data: dict) -> bool:
         conn.close()
         return True
     except Exception as e:
-        st.error(f"Database error: {e}")
+        st.error(f"Database error adding monitoring record: {e}")
         return False
 
 def generate_tree_id(institution_name: str) -> str:
@@ -441,7 +501,7 @@ def generate_tree_id(institution_name: str) -> str:
     if not existing_ids:
         return f"{prefix}001"
     
-    max_num = max([int(re.search(r'\d+$', str(id)).group()) for id in existing_ids])
+    max_num = max([int(re.search(r'\d+$', str(id)).group()) for id in existing_ids if re.search(r'\d+$', str(id))])
     return f"{prefix}{max_num + 1:03d}"
 
 def calculate_co2(scientific_name: str, rcd: Optional[float] = None, dbh: Optional[float] = None) -> float:
@@ -451,9 +511,9 @@ def calculate_co2(scientific_name: str, rcd: Optional[float] = None, dbh: Option
     except:
         density = 0.6
     
-    if dbh is not None:
+    if dbh is not None and dbh > 0:
         agb = 0.0509 * density * (dbh ** 2.5)
-    elif rcd is not None:
+    elif rcd is not None and rcd > 0:
         agb = 0.042 * (rcd ** 2.5)
     else:
         return 0.0
@@ -652,10 +712,10 @@ def landing_page():
             st.rerun()
     
     with action_col2:
-        if st.button("🤝 Adopt a Tree", 
+        if st.button("🤝 Donate Trees", 
                    use_container_width=True,
                    help="Support existing trees and track their growth"):
-            st.session_state.landing_action = "adopt"
+            st.session_state.landing_action = "donate"
             st.rerun()
     
     # Direct login option
@@ -669,8 +729,18 @@ def landing_page():
     if hasattr(st.session_state, 'landing_action'):
         if st.session_state.landing_action == "plant":
             show_plant_trees_options()
-        elif st.session_state.landing_action == "adopt":
-            show_adoptable_institutions()
+        elif st.session_state.landing_action == "donate":
+            # Directly show donor dashboard as guest
+            st.session_state.user = {
+                "username": "guest_donor",
+                "user_type": "donor",
+                "email": "",
+                "institution": ""
+            }
+            st.session_state.authenticated = True
+            st.session_state.page = "Donor Dashboard" # Set page to donor dashboard
+            del st.session_state.landing_action
+            st.rerun()
     
     # Recent trees map (only show if no action selected)
     if not hasattr(st.session_state, 'landing_action'):
@@ -723,57 +793,8 @@ def show_plant_trees_options():
             st.rerun()
 
 def show_adoptable_institutions():
-    st.subheader("Adopt a Tree from These Qualified Institutions")
-    
-    trees = load_tree_data()
-    
-    # Calculate institution stats
-    institution_stats = trees.groupby("institution").agg(
-        total_trees=pd.NamedAgg(column="tree_id", aggfunc="count"),
-        alive_trees=pd.NamedAgg(column="status", aggfunc=lambda x: (x == "Alive").sum()),
-        total_co2=pd.NamedAgg(column="co2_kg", aggfunc="sum"),
-        available_trees=pd.NamedAgg(column="adopter_name", aggfunc=lambda x: x.isna().sum())
-    ).reset_index()
-    
-    # Filter for qualifying institutions (500+ trees and 100kg+ CO2)
-    qualifying_institutions = institution_stats[
-        (institution_stats["total_trees"] >= 5) & 
-        (institution_stats["total_co2"] >= 100)
-    ].sort_values("total_co2", ascending=False)
-    
-    if not qualifying_institutions.empty:
-        st.info("These institutions have met our adoption criteria (500+ trees planted and 100kg+ CO₂ sequestered):")
-        
-        # Display as expandable cards
-        for _, row in qualifying_institutions.iterrows():
-            with st.expander(f"🏫 {row['institution']} - {row['available_trees']} trees available"):
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("Total Trees", f"{row['total_trees']:,}")
-                    st.metric("Alive Trees", f"{row['alive_trees']:,}")
-                with col2:
-                    st.metric("CO₂ Sequestered", f"{round(row['total_co2'], 2)} kg")
-                    st.metric("Available for Adoption", f"{row['available_trees']:,}")
-                
-                if st.button(f"Adopt from {row['institution']}", key=f"adopt_{row['institution']}"):
-                    st.session_state.show_login = True
-                    st.session_state.adopt_institution = row['institution']
-                    del st.session_state.landing_action
-                    st.rerun()
-        
-        st.markdown("""
-        <div class="card">
-            <h4>About Tree Adoption</h4>
-            <p>By adopting a tree, you help support these institutions in maintaining their trees. 
-            You'll receive regular updates on your tree's growth and environmental impact.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.warning("No institutions currently meet our adoption criteria. Check back later!")
-    
-    if st.button("Back to Main Page"):
-        del st.session_state.landing_action
-        st.rerun()
+    # This function is now handled by the donor dashboard
+    pass
 
 # --- Login Page ---
 def login():
@@ -845,6 +866,22 @@ def login():
                 st.error("Invalid username or password")
                 if username == "admin":
                     st.info("Default admin password is 'admin123'")
+    # Guest donor option
+    st.markdown("---")
+    st.markdown("### Donate as Guest")
+    st.markdown("Support tree planting initiatives without creating an account.")
+    
+    if st.button("Continue as Guest Donor"):
+        # Set up guest donor session
+        st.session_state.user = {
+            "username": "guest_donor",
+            "user_type": "donor",
+            "email": "",
+            "institution": ""
+        }
+        st.session_state.authenticated = True
+        st.session_state.page = "Donor Dashboard" # Set page to donor dashboard
+        st.rerun()
 
 # --- Main App ---
 def main():
@@ -874,58 +911,70 @@ def main():
         st.markdown(f"<h3>Welcome, {st.session_state.user.get('username', 'User')}</h3>", unsafe_allow_html=True)
         st.markdown(f"<p>Role: {USER_TYPES.get(user_type, 'User')}</p>", unsafe_allow_html=True)
         
+        # Define navigation options based on user type
+        nav_options = []
         if user_type == "admin":
-            st.markdown("### Admin Navigation")
-            page = st.radio("Go to:", ["Dashboard", "Plant a Tree", "Monitor Trees", "Reports"])
+            nav_options = ["Dashboard", "Plant a Tree", "Monitoring", "Tree Lookup", "Reports", "Donor Dashboard"]
         elif user_type == "school":
-            st.markdown("### Institution Navigation")
-            page = st.radio("Go to:", ["Dashboard", "Plant a Tree", "Monitor Trees", "Reports"])
+            nav_options = ["Dashboard", "Plant a Tree", "Monitoring", "Reports"]
         elif user_type == "field":
-            st.markdown("### Field Agent Navigation")
-            page = st.radio("Go to:", ["Plant a Tree", "Monitor Trees"])
-        else:  # public
-            st.markdown("### Donor Navigation")
-            page = st.radio("Go to:", ["Adopt a Tree", "My Trees"])
+            nav_options = ["Plant a Tree", "Monitoring"]
+        elif user_type == "donor": # Guest Donor
+            nav_options = ["Donor Dashboard"]
+        else: # public (logged in)
+            nav_options = ["Adopt a Tree", "My Trees"]
+            
+        # Use session state to manage the current page
+        if 'page' not in st.session_state:
+            st.session_state.page = nav_options[0] # Default to first option
+            
+        page = st.radio("Go to:", nav_options, key="navigation", index=nav_options.index(st.session_state.page))
+        st.session_state.page = page # Update session state when radio changes
         
         if st.button("Logout"):
-            del st.session_state.user
+            # Clear relevant session state keys on logout
+            keys_to_clear = ["user", "authenticated", "page", "landing_action", "show_login", "adopt_institution"]
+            for key in keys_to_clear:
+                if key in st.session_state:
+                    del st.session_state[key]
             st.success("Logged out successfully!")
             time.sleep(1)
             st.rerun()
-    
-    # Display selected page
-    if user_type == "admin":
-        if page == "Dashboard":
-            admin_dashboard()
-        elif page == "Plant a Tree":
-            # Use the KoBo integration module for planting trees
-            plant_a_tree_section()
-        elif page == "Monitor Trees":
-            monitor_trees()
-        elif page == "Reports":
-            reports_page()
-    elif user_type == "school":
-        if page == "Dashboard":
-            institution_dashboard()
-        elif page == "Plant a Tree":
-            # Use the KoBo integration module for planting trees
-            plant_a_tree_section()
-        elif page == "Monitor Trees":
-            monitor_trees()
-        elif page == "Reports":
-            reports_page()
-    elif user_type == "field":
-        if page == "Plant a Tree":
-            # Use the KoBo integration module for planting trees
-            plant_a_tree_section()
-        elif page == "Monitor Trees":
-            monitor_trees()
-    else:  # public
-        if page == "Adopt a Tree":
-            donor_dashboard()
-        elif page == "My Trees":
-            my_trees_page()
 
+    # Display selected page based on session state
+    current_page = st.session_state.page
+    
+    if current_page == "Dashboard":
+        if user_type == "admin":
+            admin_dashboard()
+        elif user_type == "school":
+            institution_dashboard()
+        else:
+            st.error("Access denied.")
+    elif current_page == "Plant a Tree":
+        plant_a_tree_section()
+    elif current_page == "Monitoring":
+        monitoring_section() # Use the new monitoring section
+    elif current_page == "Tree Lookup":
+        if user_type == "admin":
+            admin_tree_lookup() # Use the new admin lookup
+        else:
+            st.error("Access denied.")
+    elif current_page == "Reports":
+        if user_type in ["admin", "school"]:
+            reports_page()
+        else:
+            st.error("Access denied.")
+    elif current_page == "Donor Dashboard":
+        donor_dashboard()
+    elif current_page == "Adopt a Tree":
+        donor_dashboard() # Public users can adopt/donate
+    elif current_page == "My Trees":
+        my_trees_page() # For public users who adopted
+    else:
+        st.error("Page not found.")
+
+# --- Institution Dashboard ---
 def institution_dashboard():
     institution = st.session_state.user.get("institution", "")
     header_text = f"🏫 {institution} Dashboard" if institution else "🏫 Institution Dashboard"
@@ -982,275 +1031,8 @@ def institution_dashboard():
     else:
         st.info("No trees to display on the map.")
 
-def donor_dashboard():
-    """Streamlit dashboard for donors to view tree planting progress"""
-    st.title("🌳 Donor Dashboard")
-    
-    # Verify user is logged in and has donor privileges
-    if "user" not in st.session_state:
-        st.warning("Please log in to access the donor dashboard")
-        return
-        
-    if st.session_state.user.get("user_type") != "donor":
-        st.error("Your account doesn't have donor privileges")
-        return
-    
-    # Connect to database
-    conn = sqlite3.connect(SQLITE_DB)
-    
-    try:
-        # Section 1: Summary Statistics
-        st.header("🌱 Planting Summary")
-        
-        col1, col2, col3 = st.columns(3)
-        
-        # Total trees planted
-        total_trees = pd.read_sql("SELECT COUNT(*) FROM trees", conn).iloc[0, 0]
-        col1.metric("Total Trees Planted", total_trees)
-        
-        # Alive trees
-        alive_trees = pd.read_sql("SELECT COUNT(*) FROM trees WHERE status = 'Alive'", conn).iloc[0, 0]
-        col2.metric("Alive Trees", alive_trees, f"{alive_trees/total_trees:.1%} survival")
-        
-        # CO2 sequestered
-        total_co2 = pd.read_sql("SELECT SUM(co2_kg) FROM trees", conn).iloc[0, 0] or 0
-        col3.metric("CO₂ Sequestered", f"{total_co2:,.2f} kg")
-        
-        # Section 2: Recent Activity
-        st.header("📅 Recent Activity")
-        
-        recent_activity = pd.read_sql('''
-            SELECT 
-                t.tree_id, 
-                t.local_name as species,
-                t.institution,
-                t.date_planted,
-                t.status,
-                t.co2_kg,
-                m.monitor_date as last_monitored
-            FROM trees t
-            LEFT JOIN (
-                SELECT tree_id, MAX(monitor_date) as monitor_date 
-                FROM monitoring_history 
-                GROUP BY tree_id
-            ) m ON t.tree_id = m.tree_id
-            ORDER BY t.date_planted DESC
-            LIMIT 50
-        ''', conn)
-        
-        st.dataframe(
-            recent_activity,
-            column_config={
-                "tree_id": "Tree ID",
-                "species": "Species",
-                "institution": "Institution",
-                "date_planted": "Date Planted",
-                "status": "Status",
-                "co2_kg": st.column_config.NumberColumn("CO₂ (kg)", format="%.2f"),
-                "last_monitored": "Last Monitored"
-            },
-            hide_index=True,
-            use_container_width=True
-        )
-        
-        # Section 3: Map View
-        st.header("🗺️ Tree Locations")
-        
-        # Get trees with coordinates
-        trees_with_location = pd.read_sql('''
-            SELECT tree_id, local_name, latitude, longitude, status 
-            FROM trees 
-            WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-        ''', conn)
-        
-        if not trees_with_location.empty:
-            st.map(
-                trees_with_location,
-                latitude='latitude',
-                longitude='longitude',
-                color='status',
-                size=10
-            )
-        else:
-            st.info("No trees with location data available")
-        
-        # Section 4: Download Reports
-        st.header("📊 Download Reports")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("Generate Full Report (CSV)"):
-                full_report = pd.read_sql("SELECT * FROM trees", conn)
-                st.download_button(
-                    label="Download Full Report",
-                    data=full_report.to_csv(index=False),
-                    file_name="tree_planting_full_report.csv",
-                    mime="text/csv"
-                )
-        
-        with col2:
-            if st.button("Generate Monitoring History (CSV)"):
-                monitoring_report = pd.read_sql("SELECT * FROM monitoring_history", conn)
-                st.download_button(
-                    label="Download Monitoring Report",
-                    data=monitoring_report.to_csv(index=False),
-                    file_name="tree_monitoring_report.csv",
-                    mime="text/csv"
-                )
-    
-    finally:
-        conn.close()
-# --- Monitor Trees Page ---
-def monitor_trees():
-    st.markdown("<h1 class='header-text'>🔍 Monitor Trees</h1>", unsafe_allow_html=True)
-    
-    user_type = st.session_state.user.get("user_type", "")
-    institution = st.session_state.user.get("institution", "")
-    
-    # Load data
-    trees = load_tree_data()
-    
-    # Filter trees based on user type
-    if user_type == "admin":
-        filtered_trees = trees
-    elif user_type in ["school", "field"]:
-        filtered_trees = trees[trees["institution"] == institution]
-    else:
-        st.error("You don't have permission to monitor trees.")
-        return
-    
-    # Tree selection
-    st.subheader("Select a Tree to Monitor")
-    
-    col1, col2 = st.columns([1, 2])
-    
-    with col1:
-        tree_id = st.text_input("Enter Tree ID")
-        
-        if tree_id:
-            tree_data = filtered_trees[filtered_trees["tree_id"] == tree_id]
-            
-            if tree_data.empty:
-                st.error(f"Tree ID {tree_id} not found or you don't have permission to monitor it.")
-            else:
-                tree = tree_data.iloc[0]
-                
-                with col2:
-                    st.markdown(f"""
-                    <div class="card">
-                        <h3>Tree {tree['tree_id']}</h3>
-                        <p><strong>Species:</strong> {tree['local_name']} ({tree['scientific_name']})</p>
-                        <p><strong>Planted by:</strong> {tree['student_name']}</p>
-                        <p><strong>Planted on:</strong> {tree['date_planted']}</p>
-                        <p><strong>Status:</strong> {tree['status']}</p>
-                        <p><strong>Location:</strong> {tree['county']}, {tree['sub_county']}, {tree['ward']}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                # Display tree growth visualization
-                display_tree_growth(tree["height_m"])
-                
-                # Monitoring history
-                monitoring_history = load_monitoring_history(tree_id)
-                
-                if not monitoring_history.empty:
-                    st.subheader("Monitoring History")
-                    st.dataframe(monitoring_history[["monitor_date", "monitor_status", "monitor_stage", "height_m", "rcd_cm", "dbh_cm", "co2_kg", "monitor_by"]])
-                    
-                    # Growth chart
-                    st.subheader("Growth Over Time")
-                    fig = px.line(
-                        monitoring_history.sort_values("monitor_date"),
-                        x="monitor_date",
-                        y=["height_m", "rcd_cm", "dbh_cm"],
-                        title="Tree Growth Metrics",
-                        labels={"value": "Measurement", "variable": "Metric"}
-                    )
-                    st.plotly_chart(fig)
-                
-                # Add new monitoring record
-                st.subheader("Add Monitoring Record")
-                
-                with st.form("monitoring_form"):
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        monitor_date = st.date_input("Monitoring Date", datetime.datetime.now())
-                        monitor_status = st.selectbox("Tree Status", ["Alive", "Stressed", "Dead"])
-                        monitor_stage = st.selectbox("Growth Stage", ["Seedling", "Sapling", "Mature"])
-                    
-                    with col2:
-                        rcd_cm = st.number_input("Root Collar Diameter (cm)", min_value=0.0, value=float(tree["rcd_cm"]))
-                        dbh_cm = st.number_input("Diameter at Breast Height (cm)", min_value=0.0, value=float(tree["dbh_cm"]))
-                        height_m = st.number_input("Height (m)", min_value=0.0, value=float(tree["height_m"]))
-                    
-                    notes = st.text_area("Monitoring Notes")
-                    
-                    if st.form_submit_button("Submit Monitoring Record"):
-                        # Calculate CO2
-                        co2_kg = calculate_co2(tree["scientific_name"], rcd_cm, dbh_cm)
-                        
-                        # Prepare monitoring data
-                        monitoring_data = {
-                            "monitor_date": monitor_date.isoformat(),
-                            "monitor_status": monitor_status,
-                            "monitor_stage": monitor_stage,
-                            "rcd_cm": rcd_cm,
-                            "dbh_cm": dbh_cm,
-                            "height_m": height_m,
-                            "co2_kg": co2_kg,
-                            "notes": notes,
-                            "monitor_by": st.session_state.user.get("username", "")
-                        }
-                        
-                        # Add monitoring record
-                        if add_monitoring_record(tree_id, monitoring_data):
-                            # Update tree data
-                            trees.loc[trees["tree_id"] == tree_id, "rcd_cm"] = rcd_cm
-                            trees.loc[trees["tree_id"] == tree_id, "dbh_cm"] = dbh_cm
-                            trees.loc[trees["tree_id"] == tree_id, "height_m"] = height_m
-                            trees.loc[trees["tree_id"] == tree_id, "co2_kg"] = co2_kg
-                            trees.loc[trees["tree_id"] == tree_id, "status"] = monitor_status
-                            trees.loc[trees["tree_id"] == tree_id, "last_monitored"] = monitor_date.isoformat()
-                            
-                            if save_tree_data(trees):
-                                st.success("Monitoring record added successfully!")
-                                st.rerun()
-        
-        # QR code scanner option
-        st.markdown("---")
-        st.subheader("Scan QR Code")
-        st.markdown("Use your device's camera to scan a tree's QR code for quick monitoring.")
-        
-        if st.button("Open QR Scanner"):
-            st.markdown("""
-            <script>
-                // This would be implemented with a JavaScript QR scanner library
-                // For demonstration purposes only
-                alert("QR Scanner would open here in a real implementation");
-            </script>
-            """, unsafe_allow_html=True)
-    
-    # Tree map for selection
-    if not filtered_trees.empty:
-        st.subheader("Select Tree from Map")
-        fig = px.scatter_mapbox(
-            filtered_trees,
-            lat="latitude",
-            lon="longitude",
-            hover_name="tree_id",
-            hover_data=["local_name", "institution", "date_planted"],
-            color="status",
-            color_discrete_map={"Alive": "#2e8b57", "Dead": "#d62728", "Adopted": "#1f77b4"},
-            zoom=10,
-            height=400
-        )
-        fig.update_layout(mapbox_style="open-street-map")
-        fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-        st.plotly_chart(fig)
-        
-        st.info("Click on a tree in the map and copy its Tree ID to monitor it.")
+# --- REMOVED OLD monitor_trees() FUNCTION ---
+# The functionality is now handled by kobo_monitoring.py
 
 # --- Reports Page ---
 def reports_page():
@@ -1284,184 +1066,37 @@ def reports_page():
     start_date_str = start_date.isoformat()
     end_date_str = end_date.isoformat()
     
-    # Filter by date
+    # Filter by date range
     date_filtered_trees = filtered_trees[
         (filtered_trees["date_planted"] >= start_date_str) & 
         (filtered_trees["date_planted"] <= end_date_str)
     ]
     
-    # Summary metrics
-    col1, col2, col3, col4 = st.columns(4)
+    st.subheader("Summary Statistics")
     
+    col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Total Trees", len(date_filtered_trees))
-    
+        st.metric("Trees Planted in Period", len(date_filtered_trees))
     with col2:
         alive_trees = len(date_filtered_trees[date_filtered_trees["status"] == "Alive"])
         survival_rate = round((alive_trees / len(date_filtered_trees)) * 100, 1) if len(date_filtered_trees) > 0 else 0
         st.metric("Survival Rate", f"{survival_rate}%")
-    
     with col3:
         total_co2 = round(date_filtered_trees["co2_kg"].sum(), 2)
         st.metric("CO₂ Sequestered", f"{total_co2} kg")
     
-    with col4:
-        unique_planters = date_filtered_trees["student_name"].nunique()
-        st.metric("Unique Planters", unique_planters)
+    st.subheader("Tree Data Table")
+    st.dataframe(date_filtered_trees)
     
-    # Charts
-    st.subheader("Planting Trends")
-    
-    # Prepare data for time series
-    if not date_filtered_trees.empty:
-        # Convert date_planted to datetime
-        date_filtered_trees["date_planted"] = pd.to_datetime(date_filtered_trees["date_planted"])
-        
-        # Group by month
-        monthly_plantings = date_filtered_trees.groupby(pd.Grouper(key="date_planted", freq="M")).size().reset_index()
-        monthly_plantings.columns = ["month", "trees_planted"]
-        
-        # Plot time series
-        fig = px.line(
-            monthly_plantings,
-            x="month",
-            y="trees_planted",
-            title="Monthly Tree Plantings",
-            labels={"month": "Month", "trees_planted": "Trees Planted"}
-        )
-        st.plotly_chart(fig)
-        
-        # Species distribution
-        st.subheader("Species Distribution")
-        species_counts = date_filtered_trees["scientific_name"].value_counts().reset_index()
-        species_counts.columns = ["species", "count"]
-        
-        fig = px.pie(
-            species_counts,
-            values="count",
-            names="species",
-            title="Tree Species Distribution"
-        )
-        st.plotly_chart(fig)
-        
-        # Status distribution
-        st.subheader("Tree Status")
-        status_counts = date_filtered_trees["status"].value_counts().reset_index()
-        status_counts.columns = ["status", "count"]
-        
-        fig = px.bar(
-            status_counts,
-            x="status",
-            y="count",
-            color="status",
-            title="Tree Status Distribution",
-            color_discrete_map={"Alive": "#2e8b57", "Dead": "#d62728", "Adopted": "#1f77b4"}
-        )
-        st.plotly_chart(fig)
-        
-        # Export options
-        st.subheader("Export Data")
-        
-        if st.button("Export to CSV"):
-            csv = date_filtered_trees.to_csv(index=False)
-            st.download_button(
-                "Download CSV",
-                data=csv,
-                file_name="tree_report.csv",
-                mime="text/csv"
-            )
-    else:
-        st.info("No data available for the selected date range.")
+    # Download button
+    csv = date_filtered_trees.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="Download Report as CSV",
+        data=csv,
+        file_name=f"tree_report_{start_date_str}_to_{end_date_str}.csv",
+        mime="text/csv",
+    )
 
-# --- My Trees Page (for donors) ---
-def my_trees_page():
-    st.markdown("<h1 class='header-text'>🌳 My Adopted Trees</h1>", unsafe_allow_html=True)
-    
-    username = st.session_state.user.get("username", "")
-    
-    # Load data
-    trees = load_tree_data()
-    
-    # Filter for adopted trees by this user
-    adopted_trees = trees[trees["adopter_name"] == username]
-    
-    if not adopted_trees.empty:
-        st.success(f"You have adopted {len(adopted_trees)} trees!")
-        
-        # Display each adopted tree
-        for _, tree in adopted_trees.iterrows():
-            with st.expander(f"Tree {tree['tree_id']} - {tree['local_name']}"):
-                col1, col2 = st.columns([1, 2])
-                
-                with col1:
-                    display_tree_growth(tree["height_m"])
-                
-                with col2:
-                    st.markdown(f"""
-                    <div class="card">
-                        <h3>Tree Details</h3>
-                        <p><strong>Species:</strong> {tree['local_name']} ({tree['scientific_name']})</p>
-                        <p><strong>Planted by:</strong> {tree['student_name']}</p>
-                        <p><strong>Planted on:</strong> {tree['date_planted']}</p>
-                        <p><strong>Institution:</strong> {tree['institution']}</p>
-                        <p><strong>CO₂ Sequestered:</strong> {tree['co2_kg']} kg</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                # Monitoring history
-                monitoring_history = load_monitoring_history(tree["tree_id"])
-                
-                if not monitoring_history.empty:
-                    st.subheader("Growth History")
-                    st.dataframe(monitoring_history[["monitor_date", "monitor_stage", "height_m", "co2_kg"]])
-                    
-                    # Growth chart
-                    fig = px.line(
-                        monitoring_history.sort_values("monitor_date"),
-                        x="monitor_date",
-                        y="height_m",
-                        title="Tree Height Over Time",
-                        labels={"monitor_date": "Date", "height_m": "Height (m)"}
-                    )
-                    st.plotly_chart(fig)
-                
-                # Tree location
-                st.subheader("Tree Location")
-                fig = px.scatter_mapbox(
-                    pd.DataFrame([tree]),
-                    lat="latitude",
-                    lon="longitude",
-                    hover_name="tree_id",
-                    zoom=15,
-                    height=300
-                )
-                fig.update_layout(mapbox_style="open-street-map")
-                fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-                st.plotly_chart(fig)
-                
-                # Share on social media
-                st.subheader("Share Your Impact")
-                st.markdown("""
-                <div style="display: flex; gap: 10px;">
-                    <button style="background-color: #1DA1F2; color: white; border: none; padding: 5px 10px; border-radius: 5px;">
-                        Share on Twitter
-                    </button>
-                    <button style="background-color: #4267B2; color: white; border: none; padding: 5px 10px; border-radius: 5px;">
-                        Share on Facebook
-                    </button>
-                    <button style="background-color: #0e76a8; color: white; border: none; padding: 5px 10px; border-radius: 5px;">
-                        Share on LinkedIn
-                    </button>
-                </div>
-                """, unsafe_allow_html=True)
-    else:
-        st.info("You haven't adopted any trees yet.")
-        
-        if st.button("Adopt a Tree Now"):
-            st.session_state.page = "Adopt a Tree"
-            st.rerun()
-
-# --- Admin Dashboard ---
 def admin_dashboard():
     st.markdown("<h1 class='header-text'>🌳 Administrator Dashboard</h1>", unsafe_allow_html=True)
     
@@ -1757,6 +1392,60 @@ def admin_dashboard():
         st.plotly_chart(fig)
 add_branding_footer()
 
-# Run the app
+
+# --- My Trees Page (for public users who adopted) ---
+def my_trees_page():
+    st.markdown("<h1 class='header-text'>💚 My Adopted Trees</h1>", unsafe_allow_html=True)
+    
+    donor_email = st.session_state.user.get("email", "")
+    
+    if not donor_email:
+        donor_email = st.text_input("Enter your email to view your adopted trees:")
+        if not donor_email:
+            st.info("Please enter the email address you used for adoption.")
+            return
+            
+    # Load adopted trees for this donor
+    conn = sqlite3.connect(SQLITE_DB)
+    try:
+        adopted_trees = pd.read_sql("""
+            SELECT t.* FROM trees t 
+            JOIN payments p ON t.tree_id = p.tree_id 
+            WHERE p.donor_email = ? AND p.payment_status = 'approved'
+        """, conn, params=(donor_email,))
+    except Exception as e:
+        st.error(f"Error loading your trees: {e}")
+        adopted_trees = pd.DataFrame()
+    finally:
+        conn.close()
+        
+    if adopted_trees.empty:
+        st.warning("No adopted trees found for this email address.")
+        return
+        
+    st.success(f"Found {len(adopted_trees)} adopted tree(s) for {donor_email}")
+    
+    for _, tree in adopted_trees.iterrows():
+        with st.expander(f"🌳 Tree {tree['tree_id']} - {tree['local_name']} ({tree['institution']})"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write(f"**Species:** {tree['local_name']} ({tree['scientific_name']})")
+                st.write(f"**Planted on:** {tree['date_planted']}")
+                st.write(f"**Status:** {tree['status']}")
+                st.write(f"**CO₂ Sequestered:** {tree['co2_kg']} kg")
+            
+            with col2:
+                # Display tree growth visualization
+                display_tree_growth(tree["height_m"])
+            
+            # Monitoring history
+            monitoring_history = load_monitoring_history(tree['tree_id'])
+            if not monitoring_history.empty:
+                st.subheader("Recent Monitoring")
+                st.dataframe(monitoring_history.head(5)[["monitor_date", "monitor_status", "height_m", "co2_kg"]])
+
+# --- Main Execution ---
 if __name__ == "__main__":
     main()
+    add_branding_footer() # Add the footer at the end

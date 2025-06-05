@@ -845,21 +845,6 @@ def login():
                 st.error("Invalid username or password")
                 if username == "admin":
                     st.info("Default admin password is 'admin123'")
-    # Guest donor option
-    st.markdown("---")
-    st.markdown("### Donate as Guest")
-    st.markdown("Support tree planting initiatives without creating an account.")
-    
-    if st.button("Continue as Guest Donor"):
-        # Set up guest donor session
-        st.session_state.user = {
-            "username": "guest_donor",
-            "user_type": "donor",
-            "email": "",
-            "institution": ""
-        }
-        st.session_state.authenticated = True
-        st.rerun()
 
 # --- Main App ---
 def main():
