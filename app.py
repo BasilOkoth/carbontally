@@ -796,24 +796,25 @@ def show_adoptable_institutions():
     # This function is now handled by the donor dashboard
     pass
 
-# --- Login Page ---
 def login():
     st.markdown("<h1 class='header-text'>🌳 CarbonTally</h1>", unsafe_allow_html=True)
-    
+
     # Add back button to return to landing page
     if st.button("← Back to Home"):
         if hasattr(st.session_state, 'show_login'):
             del st.session_state.show_login
         st.rerun()
-    
+
     st.markdown("""
     <div class="card">
         <h3>Track, Monitor, and Celebrate Your Trees</h3>
         <p>Join our community in growing a greener future, one tree at a time.</p>
     </div>
     """, unsafe_allow_html=True)
-    
-    with st.expander("🔧 Troubleshooting Tools", expanded=False):
+
+    # --- Show Troubleshooting Tools ONLY IF logged in as admin ---
+    if st.session_state.get("user", {}).get("user_type") == "admin":
+        st.markdown("### 🔧 Troubleshooting Tools")
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Reset Database"):
@@ -824,12 +825,12 @@ def login():
                     st.success("Database completely reset! Default admin: admin/admin123")
                 except Exception as e:
                     st.error(f"Error resetting database: {e}")
-        
+
         with col2:
             if st.button("Create Test Users"):
                 create_test_users()
                 st.success("Created test users: admin/admin123, institution1/inst123, public1/public123, field/field123")
-        
+
         if st.button("Show All Users"):
             try:
                 conn = sqlite3.connect(SQLITE_DB)
@@ -839,17 +840,18 @@ def login():
             except Exception as e:
                 st.error(f"Error showing users: {e}")
 
+    # --- Login Form ---
     with st.form("login_form"):
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
-        
+
         if st.form_submit_button("Login"):
             if not username or not password:
                 st.warning("Please enter both username and password")
                 return
-                
+
             user = authenticate(username, password)
-            
+
             if user:
                 user_data = {
                     "username": user[0],
@@ -857,20 +859,25 @@ def login():
                     "institution": user[3] if len(user) > 3 else "",
                     "is_test_user": user[4] if len(user) > 4 else 0
                 }
-                
+
                 st.session_state.user = user_data
                 st.success(f"Welcome {user[0]}!")
+
+                # 👇 Debug print
+                st.write("Logged in as:", st.session_state.user)
+
                 time.sleep(0.5)
                 st.rerun()
             else:
                 st.error("Invalid username or password")
                 if username == "admin":
                     st.info("Default admin password is 'admin123'")
-    # Guest donor option
+
+    # --- Guest Donor Option ---
     st.markdown("---")
     st.markdown("### Donate as Guest")
     st.markdown("Support tree planting initiatives without creating an account.")
-    
+
     if st.button("Continue as Guest Donor"):
         # Set up guest donor session
         st.session_state.user = {
@@ -880,8 +887,10 @@ def login():
             "institution": ""
         }
         st.session_state.authenticated = True
-        st.session_state.page = "Donor Dashboard" # Set page to donor dashboard
+        st.session_state.page = "Donor Dashboard"
         st.rerun()
+
+
 
 # --- Main App ---
 def main():
