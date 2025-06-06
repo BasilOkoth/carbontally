@@ -11,7 +11,7 @@ import json
 import re
 
 # Database configuration
-BASE_DIR = Path(__file__).parent if "__file__" in locals() else Path.cwd()
+BASE_DIR = Path(__file__).parent if "__file__ in locals()" else Path.cwd()
 DATA_DIR = BASE_DIR / "data"
 SQLITE_DB = DATA_DIR / "trees.db"
 CERT_DIR = DATA_DIR / "certificates"
@@ -636,7 +636,7 @@ def track_donations_section():
                         st.info("Trees are being assigned to your donation.")
 
 def impact_dashboard_section():
-    """Interface for viewing overall impact"""
+    """Interface for viewing overall impact (without graphs/charts)"""
     st.header("Donation Impact Dashboard")
     
     # Get qualifying institutions
@@ -683,23 +683,352 @@ def impact_dashboard_section():
         else:
             st.metric("Extra Trees", f"{abs(trees_needed):,}")
     
-    # Institution comparison
-    st.subheader("Institution Comparison")
+    # Institution comparison - now as a table instead of charts
+    st.subheader("Institution Performance")
     
-    # Prepare data for charts
-    chart_df = stats_df[['institution', 'total_trees', 'alive_trees', 'co2_kg', 'total_donations']]
-    chart_df = chart_df.sort_values('total_trees', ascending=False)
+    # Prepare data for display
+    display_df = stats_df[['institution', 'total_trees', 'alive_trees', 'co2_kg', 
+                          'donation_count', 'total_donations', 'donated_trees']]
+    display_df = display_df.rename(columns={
+        'institution': 'Institution',
+        'total_trees': 'Total Trees',
+        'alive_trees': 'Alive Trees',
+        'co2_kg': 'CO₂ (kg)',
+        'donation_count': 'Donations',
+        'total_donations': 'Total Donated ($)',
+        'donated_trees': 'Trees Donated'
+    })
     
-    # Trees by institution
-    st.bar_chart(chart_df.set_index('institution')['total_trees'])
+    # Format columns
+    display_df['Total Donated ($)'] = display_df['Total Donated ($)'].apply(lambda x: f"${x:,.2f}")
+    display_df['CO₂ (kg)'] = display_df['CO₂ (kg)'].apply(lambda x: f"{x:,.2f}")
     
-    # CO2 by institution
-    st.subheader("CO₂ Sequestration by Institution")
-    st.bar_chart(chart_df.set_index('institution')['co2_kg'])
+    # Display the table
+    st.dataframe(display_df)
+
+def admin_dashboard():
+    """Admin interface for tracking donations"""
+    st.title("🔒 Admin Dashboard")
     
-    # Donations by institution
-    st.subheader("Donations by Institution")
-    st.bar_chart(chart_df.set_index('institution')['total_donations'])
+    # Password protection (in a real app, use proper authentication)
+    admin_password = st.text_input("Enter Admin Password", type="password")
+    
+    # For demo purposes, use a simple password. In production, use secure authentication.
+    if admin_password != "admin123":
+        st.warning("Please enter the correct password to access the admin dashboard.")
+        return
+    
+    st.success("Welcome, Admin!")
+    
+    # Create tabs for different admin sections
+    tab1, tab2, tab3 = st.tabs(["Donation Records", "Institution Management", "System Reports"])
+    
+    with tab1:
+        # Donation Records
+        st.header("Donation Records")
+        
+        # Get all donations from the database
+        conn = sqlite3.connect(SQLITE_DB)
+        donations_df = pd.read_sql("SELECT * FROM donations ORDER BY donation_date DESC", conn)
+        conn.close()
+        
+        if donations_df.empty:
+            st.info("No donations found in the database.")
+        else:
+            # Convert donation_date to datetime for filtering
+            donations_df['donation_date'] = pd.to_datetime(donations_df['donation_date'])
+            
+            # Filters
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                status_filter = st.selectbox(
+                    "Filter by Status",
+                    ["All"] + donations_df['payment_status'].unique().tolist()
+                )
+            with col2:
+                institution_filter = st.selectbox(
+                    "Filter by Institution",
+                    ["All"] + donations_df['institution'].unique().tolist()
+                )
+            with col3:
+                date_range = st.date_input(
+                    "Filter by Date Range",
+                    value=[donations_df['donation_date'].min(), donations_df['donation_date'].max()],
+                    min_value=donations_df['donation_date'].min(),
+                    max_value=donations_df['donation_date'].max()
+                )
+            
+            # Apply filters
+            filtered_df = donations_df.copy()
+            if status_filter != "All":
+                filtered_df = filtered_df[filtered_df['payment_status'] == status_filter]
+            if institution_filter != "All":
+                filtered_df = filtered_df[filtered_df['institution'] == institution_filter]
+            if len(date_range) == 2:
+                filtered_df = filtered_df[
+                    (filtered_df['donation_date'].dt.date >= date_range[0]) & 
+                    (filtered_df['donation_date'].dt.date <= date_range[1])
+                ]
+            
+            # Display metrics
+            st.subheader("Summary Metrics")
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Total Donations", f"${filtered_df['amount'].sum():,.2f}")
+            with col2:
+                st.metric("Number of Donations", len(filtered_df))
+            with col3:
+                st.metric("Total Trees Donated", filtered_df['tree_count'].sum())
+            with col4:
+                completed = len(filtered_df[filtered_df['payment_status'] == 'completed'])
+                st.metric("Completed Donations", f"{completed} ({completed/len(filtered_df)*100:.1f}%)")
+            
+            # Display detailed table
+            st.subheader("Donation Details")
+            
+            # Select columns to display
+            display_cols = [
+                'donation_id', 'donor_name', 'donor_email', 'institution', 
+                'amount', 'tree_count', 'donation_date', 'payment_status'
+            ]
+            display_df = filtered_df[display_cols].rename(columns={
+                'donation_id': 'ID',
+                'donor_name': 'Donor Name',
+                'donor_email': 'Email',
+                'institution': 'Institution',
+                'amount': 'Amount',
+                'tree_count': 'Trees',
+                'donation_date': 'Date',
+                'payment_status': 'Status'
+            })
+            
+            # Format columns
+            display_df['Amount'] = display_df['Amount'].apply(lambda x: f"${x:,.2f}")
+            display_df['Date'] = display_df['Date'].dt.strftime('%Y-%m-%d %H:%M')
+            
+            # Show the dataframe with expandable details
+            st.dataframe(display_df)
+            
+            # Allow admin to view details of each donation
+            selected_donation_id = st.selectbox(
+                "View details for a specific donation",
+                ["-- Select a donation --"] + filtered_df['donation_id'].tolist()
+            )
+            
+            if selected_donation_id != "-- Select a donation --":
+                donation_details = get_donation_by_id(selected_donation_id)
+                if donation_details:
+                    st.subheader("Donation Details")
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.write(f"**Donation ID:** {donation_details['donation_id']}")
+                        st.write(f"**Donor Name:** {donation_details['donor_name']}")
+                        st.write(f"**Donor Email:** {donation_details['donor_email']}")
+                        st.write(f"**Institution:** {donation_details['institution']}")
+                    
+                    with col2:
+                        st.write(f"**Amount:** ${donation_details['amount']:.2f}")
+                        st.write(f"**Trees Donated:** {donation_details['tree_count']}")
+                        st.write(f"**Date:** {donation_details['donation_date']}")
+                        st.write(f"**Status:** {donation_details['payment_status'].title()}")
+                    
+                    # Show assigned trees if payment is completed
+                    if donation_details['payment_status'] == 'completed' and donation_details.get('trees'):
+                        st.subheader("Assigned Trees")
+                        trees_df = pd.DataFrame(donation_details['trees'])
+                        
+                        # Select columns to display
+                        tree_display_cols = ['tree_id', 'local_name', 'scientific_name', 'date_planted', 'status', 'co2_kg']
+                        tree_display_df = trees_df[tree_display_cols].rename(columns={
+                            'tree_id': 'Tree ID',
+                            'local_name': 'Local Name',
+                            'scientific_name': 'Scientific Name',
+                            'date_planted': 'Date Planted',
+                            'status': 'Status',
+                            'co2_kg': 'CO₂ (kg)'
+                        })
+                        
+                        st.dataframe(tree_display_df)
+                    
+                    # Admin actions
+                    st.subheader("Admin Actions")
+                    if donation_details['payment_status'] != 'completed':
+                        if st.button("Mark as Completed", key=f"complete_{selected_donation_id}"):
+                            if update_payment_status(selected_donation_id, "completed"):
+                                st.success("Donation marked as completed!")
+                                st.rerun()
+                            else:
+                                st.error("Failed to update donation status")
+                    
+                    # Download certificate if available
+                    if donation_details.get('certificate_path'):
+                        with open(donation_details['certificate_path'], "rb") as file:
+                            st.download_button(
+                                label="Download Certificate",
+                                data=file,
+                                file_name=f"Certificate_{selected_donation_id}.png",
+                                mime="image/png"
+                            )
+    
+    with tab2:
+        # Institution Management
+        st.header("Institution Management")
+        
+        # Get all institutions
+        conn = sqlite3.connect(SQLITE_DB)
+        institutions_df = pd.read_sql("""
+            SELECT 
+                i.institution,
+                i.qualified,
+                i.qualification_reason,
+                i.qualification_date,
+                COUNT(d.donation_id) as donation_count,
+                SUM(d.amount) as total_donations,
+                SUM(d.tree_count) as total_trees_donated
+            FROM institution_qualification i
+            LEFT JOIN donations d ON i.institution = d.institution
+            GROUP BY i.institution
+            ORDER BY i.institution
+        """, conn)
+        conn.close()
+        
+        # Display current institutions
+        st.subheader("Current Institutions")
+        if institutions_df.empty:
+            st.info("No institutions found in the database.")
+        else:
+            # Display metrics
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Institutions", len(institutions_df))
+            with col2:
+                qualified = institutions_df['qualified'].sum()
+                st.metric("Qualified Institutions", f"{qualified} ({qualified/len(institutions_df)*100:.1f}%)")
+            with col3:
+                st.metric("Total Donations Received", f"${institutions_df['total_donations'].sum():,.2f}")
+            
+            # Display institution table
+            st.dataframe(institutions_df)
+            
+            # Institution management
+            st.subheader("Manage Institutions")
+            selected_institution = st.selectbox(
+                "Select an institution to manage",
+                ["-- Select an institution --"] + institutions_df['institution'].tolist()
+            )
+            
+            if selected_institution != "-- Select an institution --":
+                institution_data = institutions_df[institutions_df['institution'] == selected_institution].iloc[0]
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write(f"**Institution:** {institution_data['institution']}")
+                    st.write(f"**Currently Qualified:** {'Yes' if institution_data['qualified'] else 'No'}")
+                    st.write(f"**Qualification Reason:** {institution_data['qualification_reason']}")
+                    st.write(f"**Qualification Date:** {institution_data['qualification_date']}")
+                
+                with col2:
+                    st.write(f"**Donation Count:** {institution_data['donation_count']}")
+                    st.write(f"**Total Donations:** ${institution_data['total_donations']:,.2f}")
+                    st.write(f"**Trees Donated:** {institution_data['total_trees_donated']}")
+                
+                # Update qualification status
+                new_status = st.checkbox("Qualified for Donations", value=bool(institution_data['qualified']))
+                new_reason = st.text_area("Qualification Reason", value=institution_data['qualification_reason'])
+                
+                if st.button("Update Institution Status"):
+                    conn = sqlite3.connect(SQLITE_DB)
+                    try:
+                        c = conn.cursor()
+                        c.execute(
+                            "UPDATE institution_qualification SET qualified = ?, qualification_reason = ?, qualification_date = ? WHERE institution = ?",
+                            (int(new_status), new_reason, datetime.now().isoformat(), selected_institution)
+                        )
+                        conn.commit()
+                        st.success("Institution status updated!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error updating institution: {str(e)}")
+                    finally:
+                        conn.close()
+    
+    with tab3:
+        # System Reports
+        st.header("System Reports")
+        
+        # Get all data for reports
+        conn = sqlite3.connect(SQLITE_DB)
+        
+        # Donation trends over time
+        st.subheader("Donation Trends")
+        donation_trends = pd.read_sql("""
+            SELECT 
+                date(donation_date) as day,
+                COUNT(*) as donation_count,
+                SUM(amount) as total_amount,
+                SUM(tree_count) as total_trees
+            FROM donations
+            WHERE payment_status = 'completed'
+            GROUP BY date(donation_date)
+            ORDER BY day
+        """, conn)
+        
+        if not donation_trends.empty:
+            # Display as tables instead of charts
+            st.write("Daily Donation Counts:")
+            st.dataframe(donation_trends[['day', 'donation_count']].rename(columns={
+                'day': 'Date',
+                'donation_count': 'Donations'
+            }))
+            
+            st.write("Daily Donation Amounts:")
+            st.dataframe(donation_trends[['day', 'total_amount']].rename(columns={
+                'day': 'Date',
+                'total_amount': 'Amount ($)'
+            }))
+            
+            st.write("Daily Trees Donated:")
+            st.dataframe(donation_trends[['day', 'total_trees']].rename(columns={
+                'day': 'Date',
+                'total_trees': 'Trees'
+            }))
+        
+        # Institution performance
+        st.subheader("Institution Performance")
+        institution_performance = pd.read_sql("""
+            SELECT 
+                institution,
+                COUNT(*) as donation_count,
+                SUM(amount) as total_amount,
+                SUM(tree_count) as total_trees,
+                AVG(amount) as avg_donation
+            FROM donations
+            WHERE payment_status = 'completed'
+            GROUP BY institution
+            ORDER BY total_amount DESC
+        """, conn)
+        
+        if not institution_performance.empty:
+            st.dataframe(institution_performance.rename(columns={
+                'institution': 'Institution',
+                'donation_count': 'Donations',
+                'total_amount': 'Total Amount ($)',
+                'total_trees': 'Total Trees',
+                'avg_donation': 'Average Donation ($)'
+            }))
+        
+        conn.close()
+
+def main():
+    """Main application function with navigation"""
+    st.sidebar.title("Navigation")
+    app_mode = st.sidebar.selectbox("Choose the dashboard", ["Donor Dashboard", "Admin Dashboard"])
+    
+    if app_mode == "Donor Dashboard":
+        donor_dashboard()
+    elif app_mode == "Admin Dashboard":
+        admin_dashboard()
 
 # Initialize session state variables
 if 'show_payment' not in st.session_state:
@@ -708,3 +1037,6 @@ if 'current_donation_id' not in st.session_state:
     st.session_state.current_donation_id = None
 if 'current_donation_amount' not in st.session_state:
     st.session_state.current_donation_amount = 0
+
+if __name__ == "__main__":
+    main()
