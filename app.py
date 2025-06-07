@@ -196,8 +196,7 @@ def load_css():
         .stTextInput input, .stDateInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] > div {
             border-radius: 6px !important;
             border: 1px solid #ccc !important;
-            padding: 0.5rem 0.75rem !important;
-        }
+                    }
         .stTextArea textarea {
             border-radius: 6px !important;
             border: 1px solid #ccc !important;
