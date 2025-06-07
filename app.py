@@ -599,28 +599,38 @@ def calculate_co2(scientific_name: str, rcd: Optional[float] = None, dbh: Option
     carbon = 0.47 * (agb + bgb)
     return round(carbon * 3.67, 2)
 
-def generate_qr_code(tree_id: str) -> str:
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=8, # Slightly smaller for compactness
-        border=3,
-    )
-    qr.add_data(tree_id)
-    qr.make(fit=True)
-    
-    img = qr.make_image(fill_color="#1D7749", back_color="white")
-    
-    # Save as file
-    file_path = QR_CODE_DIR / f"{tree_id}_qr.png"
-    img.save(file_path)
-    
-    # Also create base64 encoded version for display
-    buffered = BytesIO()
-    img.save(buffered, format="PNG")
-    img_str = base64.b64encode(buffered.getvalue()).decode()
-    
-    return img_str
+def generate_qr_code(tree_id):
+    """
+    Generate and save QR code for a tree linking to Kobo form with tree_id pre-filled
+    """
+    try:
+        KOBO_FORM_BASE_URL = "https://ee.kobotoolbox.org/single/dXdb36aV?tree_id=" + tree_id
+
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=8,  # Slightly smaller for compactness
+            border=3,
+        )
+        qr.add_data(KOBO_FORM_BASE_URL)
+        qr.make(fit=True)
+
+        img = qr.make_image(fill_color="#1D7749", back_color="white")
+
+        # Save as file
+        file_path = QR_CODE_DIR / f"{tree_id}_qr.png"
+        img.save(file_path)
+
+        # Also create base64 encoded version for display
+        buffered = BytesIO()
+        img.save(buffered, format="PNG")
+        img_str = base64.b64encode(buffered.getvalue()).decode()
+
+        return img_str
+
+    except Exception as e:
+        print(f"QR code generation failed for tree {tree_id}: {e}")
+        return None
 
 # --- Payment Functions ---
 def save_payment_record(adoption_data: dict, payment: Payment):
@@ -1099,13 +1109,16 @@ def reports_page():
     )
 
 # --- Admin Dashboard ---
+# --- Admin Dashboard ---
 def admin_dashboard():
     st.markdown("<h1 class='header-text'>👑 Admin Dashboard</h1>", unsafe_allow_html=True)
     trees = load_tree_data()
+
+    # Load users
     conn_users = sqlite3.connect(SQLITE_DB)
     users_df = pd.read_sql("SELECT * FROM users", conn_users)
     conn_users.close()
-    
+
     st.markdown("<h4 style='color: #1D7749; margin-bottom: 0.5rem;'>System Overview</h4>", unsafe_allow_html=True)
     admin_metric_cols = st.columns(4)
     admin_metrics = [
@@ -1119,6 +1132,7 @@ def admin_dashboard():
             st.markdown(f'<div class="metric-card"><div class="metric-value">{value}</div><div class="metric-label">{label}</div></div>', unsafe_allow_html=True)
 
     tab_inst, tab_users = st.tabs(["🏢 Institution Performance", "👥 User Management"])
+
     with tab_inst:
         st.markdown("<h5 style='color: #333; margin-top:1rem; margin-bottom: 0.5rem;'>Institution Performance</h5>", unsafe_allow_html=True)
         institution_stats = trees.groupby("institution").agg(
@@ -1127,10 +1141,12 @@ def admin_dashboard():
             total_co2=pd.NamedAgg(column="co2_kg", aggfunc="sum")
         ).reset_index()
         institution_stats["survival_rate"] = round((institution_stats["alive_trees"] / institution_stats["total_trees"]) * 100, 1).fillna(0)
-        
-        fig_inst = px.bar(institution_stats.sort_values("total_trees", ascending=False),
-                     x="institution", y="total_trees", title="Trees Planted by Institution",
-                     color="survival_rate", color_continuous_scale=px.colors.sequential.Greens)
+
+        fig_inst = px.bar(
+            institution_stats.sort_values("total_trees", ascending=False),
+            x="institution", y="total_trees", title="Trees Planted by Institution",
+            color="survival_rate", color_continuous_scale=px.colors.sequential.Greens
+        )
         fig_inst.update_layout(title_x=0.5)
         st.plotly_chart(fig_inst, use_container_width=True)
         st.dataframe(institution_stats, use_container_width=True)
@@ -1138,12 +1154,14 @@ def admin_dashboard():
     with tab_users:
         st.markdown("<h5 style='color: #333; margin-top:1rem; margin-bottom: 0.5rem;'>User Management</h5>", unsafe_allow_html=True)
         st.dataframe(users_df[["username", "user_type", "institution"]], use_container_width=True)
+
         with st.expander("Add New User"):
             with st.form("add_user_form"):
                 new_username = st.text_input("Username")
                 new_password = st.text_input("Password", type="password")
                 new_user_type = st.selectbox("User Type", list(USER_TYPES.keys()))
                 new_institution = st.text_input("Institution (if applicable)")
+
                 if st.form_submit_button("Add User", use_container_width=True):
                     if not new_username or not new_password:
                         st.error("Username and password are required")
@@ -1151,14 +1169,34 @@ def admin_dashboard():
                         try:
                             conn = sqlite3.connect(SQLITE_DB)
                             c = conn.cursor()
-                            c.execute("INSERT INTO users (username, password, user_type, institution) VALUES (?, ?, ?, ?)", 
-                                     (new_username, hash_password(new_password), new_user_type, new_institution))
+                            c.execute(
+                                "INSERT INTO users (username, password, user_type, institution) VALUES (?, ?, ?, ?)",
+                                (new_username, hash_password(new_password), new_user_type, new_institution)
+                            )
                             conn.commit()
-                            conn.close()
                             st.success(f"User {new_username} added!")
                             st.rerun()
-                        except sqlite3.IntegrityError: st.error(f"User {new_username} already exists.")
-                        except Exception as e: st.error(f"Error: {e}")
+                        except sqlite3.IntegrityError:
+                            st.error(f"User {new_username} already exists.")
+                        except Exception as e:
+                            st.error(f"Error: {e}")
+                        finally:
+                            conn.close()
+
+        st.subheader("Remove User")
+        username_to_remove = st.selectbox("Select a user to remove", users_df["username"].values)
+
+        if st.button("Remove Selected User"):
+            try:
+                conn = sqlite3.connect(SQLITE_DB)
+                conn.execute("DELETE FROM users WHERE username = ?", (username_to_remove,))
+                conn.commit()
+                st.success(f"User {username_to_remove} removed successfully!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error removing user: {e}")
+            finally:
+                conn.close()
 
 # --- My Trees Page (for public users who adopted) ---
 def my_trees_page():
