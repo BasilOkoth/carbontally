@@ -287,67 +287,64 @@ def assign_trees_to_donation(donation_id, institution, tree_count):
 def generate_donation_certificate(donation_data):
     """Generate a certificate for a donation"""
     try:
+        from PIL import Image, ImageDraw, ImageFont
+        from pathlib import Path
+        from datetime import datetime
+
         # Create a unique filename
         filename = f"certificate_{donation_data['donation_id']}.png"
         file_path = CERT_DIR / filename
-        
+
         # Get institution stats
         institution_stats = get_institution_stats(donation_data["institution"])
-        
-        # Create certificate image (simple version)
-        from PIL import Image, ImageDraw, ImageFont
-        import numpy as np
-        
-        # Create a white certificate background
+
+        # Create certificate image
         width, height = 1200, 900
         certificate = Image.new('RGB', (width, height), color=(255, 255, 255))
         draw = ImageDraw.Draw(certificate)
-        
+
         # Try to load fonts, fall back to default if not available
         try:
             title_font = ImageFont.truetype("arial.ttf", 60)
             header_font = ImageFont.truetype("arial.ttf", 40)
             body_font = ImageFont.truetype("arial.ttf", 30)
         except IOError:
-            # Use default font if arial is not available
             title_font = ImageFont.load_default()
             header_font = ImageFont.load_default()
             body_font = ImageFont.load_default()
-        
+
         # Add border
-        draw.rectangle([(20, 20), (width-20, height-20)], outline=(46, 139, 87), width=10)
-        
-        # Add title
-        draw.text((width//2, 100), "Certificate of Donation", fill=(46, 139, 87), font=title_font, anchor="mm")
-        
-        # Add donor name
-        draw.text((width//2, 200), f"This certifies that", fill=(0, 0, 0), font=body_font, anchor="mm")
-        draw.text((width//2, 250), f"{donation_data['donor_name']}", fill=(0, 0, 0), font=header_font, anchor="mm")
-        
-        # Add donation details
-        draw.text((width//2, 350), f"has generously donated", fill=(0, 0, 0), font=body_font, anchor="mm")
-        draw.text((width//2, 400), f"${donation_data['amount']:.2f}", fill=(46, 139, 87), font=header_font, anchor="mm")
-        draw.text((width//2, 450), f"to support {donation_data['tree_count']} trees at", fill=(0, 0, 0), font=body_font, anchor="mm")
-        draw.text((width//2, 500), f"{donation_data['institution']}", fill=(0, 0, 0), font=header_font, anchor="mm")
-        
+        draw.rectangle([(20, 20), (width - 20, height - 20)], outline=(46, 139, 87), width=10)
+
+        # Add title and details
+        draw.text((width // 2, 100), "Certificate of Donation", fill=(46, 139, 87), font=title_font, anchor="mm")
+        draw.text((width // 2, 200), "This certifies that", fill=(0, 0, 0), font=body_font, anchor="mm")
+        draw.text((width // 2, 250), donation_data['donor_name'], fill=(0, 0, 0), font=header_font, anchor="mm")
+        draw.text((width // 2, 350), "has generously donated", fill=(0, 0, 0), font=body_font, anchor="mm")
+        draw.text((width // 2, 400), f"${donation_data['amount']:.2f}", fill=(46, 139, 87), font=header_font, anchor="mm")
+        draw.text((width // 2, 450), f"to support {donation_data['tree_count']} trees at", fill=(0, 0, 0), font=body_font, anchor="mm")
+        draw.text((width // 2, 500), donation_data['institution'], fill=(0, 0, 0), font=header_font, anchor="mm")
+
         # Add impact
-        co2_impact = institution_stats["co2_kg"] / institution_stats["alive_trees"] * donation_data["tree_count"] if institution_stats["alive_trees"] > 0 else 0
-        draw.text((width//2, 600), f"Estimated CO₂ Impact: {co2_impact:.2f} kg", fill=(0, 0, 0), font=body_font, anchor="mm")
-        
-        # Add date and signature
+        co2_impact = (
+            institution_stats["co2_kg"] / institution_stats["alive_trees"] * donation_data["tree_count"]
+            if institution_stats["alive_trees"] > 0 else 0
+        )
+        draw.text((width // 2, 600), f"Estimated CO₂ Impact: {co2_impact:.2f} kg", fill=(0, 0, 0), font=body_font, anchor="mm")
+
+        # Add date and footer
         donation_date = datetime.fromisoformat(donation_data["donation_date"]).strftime("%B %d, %Y")
-        draw.text((width//2, 700), f"Donation Date: {donation_date}", fill=(0, 0, 0), font=body_font, anchor="mm")
-        
-        # Add CarbonTally logo text
-        draw.text((width//2, 800), "🌱 CarbonTally", fill=(46, 139, 87), font=header_font, anchor="mm")
-        
-        # Save the certificate
+        draw.text((width // 2, 700), f"Donation Date: {donation_date}", fill=(0, 0, 0), font=body_font, anchor="mm")
+        draw.text((width // 2, 800), "🌱 CarbonTally", fill=(46, 139, 87), font=header_font, anchor="mm")
+
+        # Save certificate
         certificate.save(file_path)
-        
         return str(file_path)
+
     except Exception as e:
         st.error(f"Error generating certificate: {str(e)}")
         return None
+
 
 def get_donation_by_id(donation_id):
     """Get donation details by ID"""

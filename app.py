@@ -69,146 +69,223 @@ def get_location():
 def load_css():
     st.markdown("""
     <style>
-        /* Main styling */
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f5f5f5;
+        /* Global Resets & Base Styles */
+        html, body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            background-color: #f0f2f5; /* Lighter, cleaner background */
+            color: #333;
+            line-height: 1.6;
         }
-        
-        /* Header styling */
+
+        /* Main App Container - More Compact */
+        .main .block-container {
+            padding-top: 1.5rem; /* Reduced top padding */
+            padding-bottom: 1.5rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            max-width: 1200px; /* Constrain width for better readability on large screens */
+            margin: 0 auto;
+        }
+
+        /* Header Styling - Modern & Clean */
         .header-text {
-            color: #2e8b57;
+            color: #1D7749; /* Deeper, more sophisticated green */
             font-weight: 700;
-            font-size: 2.5rem;
+            font-size: 2.2rem; /* Slightly reduced for compactness */
+            margin-bottom: 1rem; /* Consistent spacing */
+            text-align: left;
+        }
+
+        /* Sidebar Styling - Clean & Functional */
+        .sidebar .sidebar-content {
+            background-color: #ffffff; /* White sidebar for cleaner look */
+            border-right: 1px solid #e0e0e0;
+            padding: 1rem;
+        }
+        .sidebar .sidebar-content h3 {
+            color: #1D7749;
+            font-size: 1.1rem;
+            margin-top: 0;
+        }
+        .sidebar .sidebar-content p {
+            font-size: 0.9rem;
+            color: #555;
+        }
+        .sidebar .stRadio > label {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #333;
+        }
+        .sidebar .stRadio div[role="radiogroup"] > div {
             margin-bottom: 0.5rem;
         }
-        
-        /* Sidebar styling */
-        .sidebar .sidebar-content {
-            background-color: #e8f5e9;
-        }
-        
-        /* Button styling */
+
+        /* Button Styling - Modern & Action-Oriented */
         .stButton>button {
-            background-color: #4CAF50;
+            background-color: #28a745; /* Vibrant green */
             color: white;
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
+            border-radius: 6px; /* Slightly less rounded */
+            padding: 0.6rem 1.2rem; /* Adjusted padding */
             border: none;
             font-weight: 600;
-            transition: all 0.3s;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        
         .stButton>button:hover {
-            background-color: #388E3C;
-            transform: scale(1.02);
+            background-color: #218838; /* Darker on hover */
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
-        
-        /* Card styling */
+        .stButton>button:active {
+            transform: translateY(0px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Card Styling - Elevated & Informative */
         .card {
             background-color: white;
-            border-radius: 10px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            margin-bottom: 1.5rem;
+            border-radius: 8px; /* Consistent rounding */
+            padding: 1.2rem; /* Adjusted padding */
+            box-shadow: 0 3px 6px rgba(0,0,0,0.08); /* Softer shadow */
+            margin-bottom: 1.2rem;
+            border: 1px solid #e0e0e0;
         }
-        
-        /* Tree visualization */
+        .card h3 {
+            color: #1D7749;
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            font-size: 1.3rem;
+        }
+        .card p {
+            font-size: 0.95rem;
+            color: #444;
+            margin-bottom: 0.8rem;
+        }
+
+        /* Metric Card Styling - Impactful & Clear */
+        .metric-card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.07);
+            margin-bottom: 1rem;
+            text-align: center;
+            border: 1px solid #e8e8e8;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+        }
+        .metric-value {
+            font-size: 2rem; /* Slightly reduced for compactness */
+            font-weight: 700;
+            color: #1D7749;
+            margin: 0.3rem 0;
+        }
+        .metric-label {
+            font-size: 0.85rem; /* Slightly reduced */
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Form Elements - Clean & User-Friendly */
+        .stTextInput input, .stDateInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] > div {
+            border-radius: 6px !important;
+            border: 1px solid #ccc !important;
+            padding: 0.5rem 0.75rem !important;
+        }
+        .stTextArea textarea {
+            border-radius: 6px !important;
+            border: 1px solid #ccc !important;
+            padding: 0.75rem !important;
+        }
+        .stForm {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            background-color: #f9f9f9;
+        }
+
+        /* Tabs Styling - Modern & Integrated */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 8px; /* Reduced gap */
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .stTabs [data-baseweb="tab"] {
+            background-color: transparent; /* Cleaner look */
+            border-radius: 6px 6px 0 0 !important;
+            padding: 0.7rem 1.2rem; /* Adjusted padding */
+            color: #555;
+            font-weight: 600;
+            border: none !important; /* Remove default borders */
+            border-bottom: 2px solid transparent !important;
+            transition: all 0.2s ease-in-out;
+        }
+        .stTabs [aria-selected="true"] {
+            background-color: transparent !important;
+            color: #1D7749 !important;
+            border-bottom: 2px solid #1D7749 !important;
+        }
+
+        /* Tree Visualization - More Compact */
         .tree-visualization {
             text-align: center;
-            margin: 2rem 0;
+            margin: 1rem 0; /* Reduced margin */
         }
-        
-        /* Progress bars */
-        .progress-container {
-            background-color: #e0e0e0;
-            border-radius: 10px;
-            height: 20px;
-            margin: 1rem 0;
+        .tree-visualization .progress-container {
+            margin: 0.5rem auto; /* Center and reduce margin */
+            max-width: 300px;
         }
-        
-        .progress-bar {
-            background-color: #4CAF50;
-            height: 100%;
-            border-radius: 10px;
-            transition: width 0.5s;
-        }
-        
-        /* Custom tabs */
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 10px;
-        }
-        
-        .stTabs [data-baseweb="tab"] {
-            background-color: #e8f5e9;
-            border-radius: 8px 8px 0 0 !important;
-            padding: 10px 20px;
-            transition: all 0.3s;
-        }
-        
-        .stTabs [aria-selected="true"] {
-            background-color: #4CAF50 !important;
-            color: white !important;
-        }
-        
-        /* Tree growth animation */
-        @keyframes grow {
-            0% { transform: scaleY(0.1); }
-            100% { transform: scaleY(1); }
-        }
-        
-        .tree-icon {
-            font-size: 2rem;
-            display: inline-block;
-            animation: grow 1.5s ease-in-out;
-        }
-        
-        /* Footer styling */
+
+        /* Footer Styling - Unobtrusive */
         .footer {
-            margin-top: 3rem;
-            padding-top: 1rem;
+            margin-top: 2rem; /* Reduced margin */
+            padding: 1rem 0;
             border-top: 1px solid #e0e0e0;
             text-align: center;
-            color: #666;
+            font-size: 0.85rem;
+            color: #777;
         }
-        
-        /* QR code styling */
-        .qr-container {
-            display: flex;
-            justify-content: center;
-            margin: 2rem 0;
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .main .block-container {
+                padding-top: 1rem;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+            .header-text {
+                font-size: 1.8rem;
+            }
+            .metric-card {
+                padding: 0.8rem;
+                margin-bottom: 0.8rem;
+            }
+            .metric-value {
+                font-size: 1.6rem;
+            }
+            .metric-label {
+                font-size: 0.75rem;
+            }
+            .stButton>button {
+                padding: 0.5rem 1rem;
+                width: 100%; /* Full width buttons on mobile */
+            }
+            .stTabs [data-baseweb="tab"] {
+                padding: 0.6rem 1rem;
+            }
+            .card {
+                padding: 1rem;
+            }
+            .stForm {
+                padding: 1rem;
+            }
         }
-        
-        /* Landing page metrics */
-        .metric-card {
-            background-color: white;
-            border-radius: 10px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-        
-        .metric-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #2e8b57;
-            margin: 0.5rem 0;
-        }
-        
-        .metric-label {
-            font-size: 1rem;
-            color: #666;
-        }
-        
-        /* Payment styling */
-        .payment-amount {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #2e8b57;
-            text-align: center;
-            margin: 1rem 0;
-        }
+
     </style>
     """, unsafe_allow_html=True)
 
@@ -252,7 +329,6 @@ def initialize_data_files():
     DATA_DIR.mkdir(exist_ok=True, parents=True)
     if STORAGE_METHOD == "sqlite":
         init_db()
-
 
 def init_db():
     conn = sqlite3.connect(SQLITE_DB)
@@ -501,6 +577,7 @@ def generate_tree_id(institution_name: str) -> str:
     if not existing_ids:
         return f"{prefix}001"
     
+    # Fixed regex pattern with proper escaping
     max_num = max([int(re.search(r'\d+$', str(id)).group()) for id in existing_ids if re.search(r'\d+$', str(id))])
     return f"{prefix}{max_num + 1:03d}"
 
@@ -509,7 +586,7 @@ def calculate_co2(scientific_name: str, rcd: Optional[float] = None, dbh: Option
     try:
         density = species_data[species_data["scientific_name"] == scientific_name]["wood_density"].values[0]
     except:
-        density = 0.6
+        density = 0.6 # Default wood density if species not found
     
     if dbh is not None and dbh > 0:
         agb = 0.0509 * density * (dbh ** 2.5)
@@ -526,13 +603,13 @@ def generate_qr_code(tree_id: str) -> str:
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
-        border=4,
+        box_size=8, # Slightly smaller for compactness
+        border=3,
     )
     qr.add_data(tree_id)
     qr.make(fit=True)
     
-    img = qr.make_image(fill_color="black", back_color="white")
+    img = qr.make_image(fill_color="#1D7749", back_color="white")
     
     # Save as file
     file_path = QR_CODE_DIR / f"{tree_id}_qr.png"
@@ -594,16 +671,17 @@ def authenticate(username: str, password: str) -> Optional[Tuple]:
 
 # --- Visual Tree Growth Display ---
 def display_tree_growth(height_m, max_height=30):
-    growth_percentage = min((height_m / max_height) * 100, 100)
+    growth_percentage = min((height_m / max_height) * 100, 100) if height_m is not None else 0
+    current_height = height_m if height_m is not None else 0
     
     st.markdown(f"""
     <div class="tree-visualization">
-        <div style="font-size: 3rem; color: #2e8b57;">{'🌱' if height_m < 1 else '🌳' if height_m < 5 else '🌲'}</div>
-        <div style="font-weight: bold; margin: 0.5rem 0;">Height: {height_m} meters</div>
+        <div style="font-size: 2.5rem; color: #2e8b57;">{'🌱' if current_height < 1 else '🌳' if current_height < 5 else '🌲'}</div>
+        <div style="font-weight: bold; margin: 0.3rem 0; font-size: 0.9rem;">Height: {current_height:.2f} meters</div>
         <div class="progress-container">
             <div class="progress-bar" style="width: {growth_percentage}%"></div>
         </div>
-        <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
+        <div style="display: flex; justify-content: space-between; margin-top: 0.3rem; font-size: 0.8rem;">
             <span>0m</span>
             <span>{max_height}m</span>
         </div>
@@ -642,10 +720,10 @@ def create_test_users():
 def landing_page():
     st.markdown("<h1 class='header-text'>🌳 CarbonTally</h1>", unsafe_allow_html=True)
     
-    # Main header card
+    # Main header card - More concise
     st.markdown("""
-    <div class="card">
-        <h3>Track, Monitor, and Celebrate Your Trees</h3>
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <h3>Track, Monitor, & Celebrate Your Trees</h3>
         <p>Join our community in growing a greener future, one tree at a time.</p>
     </div>
     """, unsafe_allow_html=True)
@@ -654,74 +732,54 @@ def landing_page():
     trees = load_tree_data()
     total_trees = len(trees)
     alive_trees = len(trees[trees["status"] == "Alive"])
-    adopted_trees = len(trees[trees["adopter_name"].notna()])
     total_co2 = round(trees["co2_kg"].sum(), 2)
-    institutions = trees["institution"].nunique()
+    institutions_count = trees["institution"].nunique()
     survival_rate = round((alive_trees / total_trees) * 100, 1) if total_trees > 0 else 0
     
-    # Metrics section with 4 cards
-    col1, col2, col3, col4 = st.columns(4)
+    # Metrics section - Using st.columns for better responsiveness
+    cols = st.columns(4)
+    metrics_data = [
+        (f"{total_trees:,}", "Trees Planted"),
+        (f"{survival_rate}%", "Survival Rate"),
+        (f"{total_co2:,} kg", "CO₂ Sequestered"),
+        (f"{institutions_count}", "Institutions")
+    ]
     
-    with col1:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-value">{total_trees:,}</div>
-            <div class="metric-label">Trees Planted</div>
-        </div>
-        """, unsafe_allow_html=True)
+    for i, (value, label) in enumerate(metrics_data):
+        with cols[i]:
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-value">{value}</div>
+                <div class="metric-label">{label}</div>
+            </div>
+            """, unsafe_allow_html=True)
     
-    with col2:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-value">{survival_rate}%</div>
-            <div class="metric-label">Survival Rate</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-value">{total_co2:,} kg</div>
-            <div class="metric-label">CO₂ Sequestered</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col4:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-value">{institutions}</div>
-            <div class="metric-label">Institutions</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Call to Action Section
+    # Call to Action Section - More compact
     st.markdown("""
-    <div class="card">
-        <h3>Ready to Make a Difference?</h3>
-        <p>Choose how you'd like to contribute to our green initiative:</p>
+    <div class="card" style="margin-top: 1rem;">
+        <h4>Ready to Make a Difference?</h4>
+        <p style="margin-bottom: 1rem;">Choose how you'd like to contribute:</p>
     </div>
     """, unsafe_allow_html=True)
     
-    action_col1, action_col2 = st.columns(2)
-    
-    with action_col1:
-        if st.button("🌱 Plant Trees With Us", 
+    action_cols = st.columns(2)
+    with action_cols[0]:
+        if st.button("🌱 Plant Trees With Us", key="plant_cta",
                     use_container_width=True,
                     help="Join as an institution or field agent to plant and monitor trees"):
             st.session_state.landing_action = "plant"
             st.rerun()
-    
-    with action_col2:
-        if st.button("🤝 Donate Trees", 
+    with action_cols[1]:
+        if st.button("🤝 Donate Trees", key="donate_cta",
                    use_container_width=True,
                    help="Support existing trees and track their growth"):
             st.session_state.landing_action = "donate"
             st.rerun()
     
-    # Direct login option
+    # Direct login option - More subtle
     st.markdown("""
-    <div style="text-align: center; margin-top: 2rem;">
-        <p>Already have an account? <a href="#" onclick="window.location.href='?show_login=true'">Login here</a></p>
+    <div style="text-align: center; margin-top: 1.5rem; font-size: 0.9rem;">
+        Already have an account? <a href="#" onclick="window.location.href='?show_login=true'" style="color: #1D7749; font-weight: 600;">Login here</a>
     </div>
     """, unsafe_allow_html=True)
     
@@ -730,87 +788,124 @@ def landing_page():
         if st.session_state.landing_action == "plant":
             show_plant_trees_options()
         elif st.session_state.landing_action == "donate":
-            # Directly show donor dashboard as guest
             st.session_state.user = {
-                "username": "guest_donor",
-                "user_type": "donor",
-                "email": "",
-                "institution": ""
+                "username": "guest_donor", "user_type": "donor", "email": "", "institution": ""
             }
             st.session_state.authenticated = True
-            st.session_state.page = "Donor Dashboard" # Set page to donor dashboard
+            st.session_state.page = "Donor Dashboard"
             del st.session_state.landing_action
             st.rerun()
     
-    # Recent trees map (only show if no action selected)
+    # Recent trees map - More compact presentation
     if not hasattr(st.session_state, 'landing_action'):
-        st.subheader("Recently Planted Trees")
+        st.markdown("<h4 style='color: #1D7749; margin-top: 2rem; margin-bottom: 0.5rem;'>Recently Planted Trees</h4>", unsafe_allow_html=True)
         if not trees.empty:
             recent_trees = trees.sort_values("date_planted", ascending=False).head(50)
             fig = px.scatter_mapbox(
                 recent_trees,
-                lat="latitude",
-                lon="longitude",
+                lat="latitude", lon="longitude",
                 hover_name="tree_id",
-                hover_data=["local_name", "institution", "date_planted"],
+                hover_data={"local_name": True, "institution": True, "date_planted": True, "latitude": False, "longitude": False},
                 color="status",
-                color_discrete_map={"Alive": "#2e8b57", "Dead": "#d62728", "Adopted": "#1f77b4"},
-                zoom=5,
-                height=500
+                color_discrete_map={"Alive": "#28a745", "Dead": "#dc3545", "Adopted": "#007bff"},
+                zoom=4, height=400 # Reduced height
             )
-            fig.update_layout(mapbox_style="open-street-map")
-            fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-            st.plotly_chart(fig)
+            fig.update_layout(mapbox_style="carto-positron", margin={"r":0,"t":0,"l":0,"b":0})
+            st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("No trees planted yet. Be the first to plant one!")
 
 def show_plant_trees_options():
-    st.subheader("Get Involved in Tree Planting")
+    st.markdown("<h4 style='color: #1D7749; margin-bottom: 0.5rem;'>Get Involved in Tree Planting</h4>", unsafe_allow_html=True)
     
     option = st.radio("Select an option:", 
                      ["I'm an existing user - Take me to login", 
-                      "I'm new here - Show me how to register"])
+                      "I'm new here - Show me how to register"], label_visibility="collapsed")
     
     if option == "I'm an existing user - Take me to login":
-        if st.button("Proceed to Login"):
+        if st.button("Proceed to Login", key="proceed_login_plant"):
             st.session_state.show_login = True
-            del st.session_state.landing_action
+            if 'landing_action' in st.session_state: del st.session_state.landing_action
             st.rerun()
     else:
         st.markdown("""
-        <div class="card">
-            <h4>How to Register:</h4>
-            <ol>
-                <li><strong>Institutions:</strong> Contact us at okothbasil45@gmail.com to create an administrator account</li>
-                <li><strong>Field Agents:</strong> Request credentials from your institution administrator</li>
-                <li><strong>Individuals:</strong> Download our mobile app from your app store</li>
-            </ol>
+        <div class="card" style="font-size: 0.9rem;">
+            <h5 style="color: #1D7749; margin-top:0;">How to Register:</h5>
+            <ul style="padding-left: 20px; margin-bottom: 0;">
+                <li><strong>Institutions:</strong> Contact us at <a href="mailto:okothbasil45@gmail.com" style="color: #1D7749;">okothbasil45@gmail.com</a> to create an administrator account.</li>
+                <li><strong>Field Agents:</strong> Request credentials from your institution administrator.</li>
+                <li><strong>Individuals:</strong> Download our mobile app (coming soon!).</li>
+            </ul>
         </div>
         """, unsafe_allow_html=True)
         
-        if st.button("Back to Main Page"):
-            del st.session_state.landing_action
-            st.rerun()
-
-def show_adoptable_institutions():
-    # This function is now handled by the donor dashboard
-    pass
-
-def login():
-    st.markdown("<h1 class='header-text'>🌳 CarbonTally</h1>", unsafe_allow_html=True)
-
-    # Add back button to return to landing page
-    if st.button("← Back to Home"):
-        if hasattr(st.session_state, 'show_login'):
-            del st.session_state.show_login
+    if st.button("Back to Main Page", key="back_plant_options"):
+        if 'landing_action' in st.session_state: del st.session_state.landing_action
         st.rerun()
 
-    st.markdown("""
-    <div class="card">
-        <h3>Track, Monitor, and Celebrate Your Trees</h3>
-        <p>Join our community in growing a greener future, one tree at a time.</p>
-    </div>
-    """, unsafe_allow_html=True)
+def show_adoptable_institutions():
+    # This function is now primarily handled by the donor_dashboard module
+    # but can be a simple info display if needed on landing page flow
+    st.markdown("<h4 style='color: #1D7749; margin-bottom: 0.5rem;'>Adopt a Tree</h4>", unsafe_allow_html=True)
+    st.info("You can choose an institution to support and adopt trees through our Donor Dashboard.")
+    if st.button("Go to Donor Dashboard", key="go_to_donor_adopt"):
+        st.session_state.user = {
+            "username": "guest_donor", "user_type": "donor", "email": "", "institution": ""
+        }
+        st.session_state.authenticated = True
+        st.session_state.page = "Donor Dashboard"
+        if 'landing_action' in st.session_state: del st.session_state.landing_action
+        st.rerun()
+    if st.button("Back to Main Page", key="back_adopt_options"):
+        if 'landing_action' in st.session_state: del st.session_state.landing_action
+        st.rerun()
+
+# --- Login Page ---
+def login():
+    st.markdown("<h1 class='header-text' style='text-align: center; margin-bottom: 1.5rem;'>🌳 CarbonTally Login</h1>", unsafe_allow_html=True)
+    
+    cols = st.columns([1,2,1]) # Centering the form
+    with cols[1]:
+        with st.form("login_form"):
+            st.markdown("<h4 style='color: #1D7749; text-align:center; margin-bottom:1rem;'>Welcome Back!</h4>", unsafe_allow_html=True)
+            username = st.text_input("Username", placeholder="Enter your username")
+            password = st.text_input("Password", type="password", placeholder="Enter your password")
+            
+            login_button_cols = st.columns([1,2,1])
+            with login_button_cols[1]:
+                 submitted = st.form_submit_button("Login", use_container_width=True)
+
+            if submitted:
+                if not username or not password:
+                    st.warning("Please enter both username and password")
+                else:
+                    user = authenticate(username, password)
+                    if user:
+                        st.session_state.user = {
+                            "username": user[0], "user_type": user[2],
+                            "institution": user[3] if len(user) > 3 else "",
+                            "is_test_user": user[4] if len(user) > 4 else 0
+                        }
+                        st.success(f"Welcome {user[0]}!")
+                        time.sleep(0.5)
+                        st.rerun()
+                    else:
+                        st.error("Invalid username or password")
+                        if username == "admin": st.info("Default admin: admin/admin123")
+        
+        st.markdown("<hr style='margin: 1.5rem 0;'>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; font-size:0.9rem;'>Or donate as a guest:</p>", unsafe_allow_html=True)
+        guest_button_cols = st.columns([1,2,1])
+        with guest_button_cols[1]:
+            if st.button("Continue as Guest Donor", key="guest_donor_login", use_container_width=True):
+                st.session_state.user = {
+                    "username": "guest_donor", "user_type": "donor", "email": "", "institution": ""
+                }
+                st.session_state.authenticated = True
+                st.session_state.page = "Donor Dashboard"
+                st.rerun()
+
+        st.markdown("<p style='text-align:center; margin-top:1.5rem;'><a href='#' onclick=\"window.location.href='?'\" style='color: #1D7749; font-weight: 600;'>← Back to Home</a></p>", unsafe_allow_html=True)
 
     # --- Show Troubleshooting Tools ONLY IF logged in as admin ---
     if st.session_state.get("user", {}).get("user_type") == "admin":
@@ -840,87 +935,25 @@ def login():
             except Exception as e:
                 st.error(f"Error showing users: {e}")
 
-    # --- Login Form ---
-    with st.form("login_form"):
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-
-        if st.form_submit_button("Login"):
-            if not username or not password:
-                st.warning("Please enter both username and password")
-                return
-
-            user = authenticate(username, password)
-
-            if user:
-                user_data = {
-                    "username": user[0],
-                    "user_type": user[2],
-                    "institution": user[3] if len(user) > 3 else "",
-                    "is_test_user": user[4] if len(user) > 4 else 0
-                }
-
-                st.session_state.user = user_data
-                st.success(f"Welcome {user[0]}!")
-
-                # 👇 Debug print
-                st.write("Logged in as:", st.session_state.user)
-
-                time.sleep(0.5)
-                st.rerun()
-            else:
-                st.error("Invalid username or password")
-                if username == "admin":
-                    st.info("Default admin password is 'admin123'")
-
-    # --- Guest Donor Option ---
-    st.markdown("---")
-    st.markdown("### Donate as Guest")
-    st.markdown("Support tree planting initiatives without creating an account.")
-
-    if st.button("Continue as Guest Donor"):
-        # Set up guest donor session
-        st.session_state.user = {
-            "username": "guest_donor",
-            "user_type": "donor",
-            "email": "",
-            "institution": ""
-        }
-        st.session_state.authenticated = True
-        st.session_state.page = "Donor Dashboard"
-        st.rerun()
-
-
 
 # --- Main App ---
 def main():
-    # Initialize data files if they don't exist
     initialize_data_files()
-    
-    # Load CSS
     load_css()
-    
-    # Page config is already set at the top of the file
-    # Do not call st.set_page_config() here
-    
-    # Check if user is logged in
+
     if "user" not in st.session_state:
-        # Show login page if requested
-        if hasattr(st.session_state, 'show_login') and st.session_state.show_login:
+        if st.query_params.get("show_login") == "true" or (hasattr(st.session_state, 'show_login') and st.session_state.show_login):
             login()
         else:
             landing_page()
         return
-    
-    # User is logged in, show appropriate dashboard
+
     user_type = st.session_state.user.get("user_type", "")
     
-    # Sidebar navigation
     with st.sidebar:
-        st.markdown(f"<h3>Welcome, {st.session_state.user.get('username', 'User')}</h3>", unsafe_allow_html=True)
-        st.markdown(f"<p>Role: {USER_TYPES.get(user_type, 'User')}</p>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='margin-bottom:0.2rem;'>🌳 CarbonTally</h3>", unsafe_allow_html=True)
+        st.markdown(f"<p style='font-size:0.9rem; margin-top:0; margin-bottom:1rem;'>Welcome, <strong>{st.session_state.user.get('username', 'User')}</strong> ({USER_TYPES.get(user_type, 'User')})</p>", unsafe_allow_html=True)
         
-        # Define navigation options based on user type
         nav_options = []
         if user_type == "admin":
             nav_options = ["Dashboard", "Plant a Tree", "Monitoring", "Tree Lookup", "Reports", "Donor Dashboard"]
@@ -928,60 +961,46 @@ def main():
             nav_options = ["Dashboard", "Plant a Tree", "Monitoring", "Reports"]
         elif user_type == "field":
             nav_options = ["Plant a Tree", "Monitoring"]
-        elif user_type == "donor": # Guest Donor
+        elif user_type == "donor":
             nav_options = ["Donor Dashboard"]
-        else: # public (logged in)
-            nav_options = ["Adopt a Tree", "My Trees"]
+        else: # public (logged in, but not donor type - e.g. adopted tree user)
+            nav_options = ["My Trees", "Adopt a Tree"]
             
-        # Use session state to manage the current page
-        if 'page' not in st.session_state:
-            st.session_state.page = nav_options[0] # Default to first option
+        if 'page' not in st.session_state or st.session_state.page not in nav_options:
+            st.session_state.page = nav_options[0]
             
-        page = st.radio("Go to:", nav_options, key="navigation", index=nav_options.index(st.session_state.page))
-        st.session_state.page = page # Update session state when radio changes
-        
-        if st.button("Logout"):
-            # Clear relevant session state keys on logout
+        page = st.radio("Navigation", nav_options, key="navigation_radio", index=nav_options.index(st.session_state.page), label_visibility="collapsed")
+        if page != st.session_state.page:
+             st.session_state.page = page
+             st.rerun() # Rerun to reflect page change immediately
+
+        st.markdown("<hr style='margin: 1rem 0;'>", unsafe_allow_html=True)
+        if st.button("Logout", use_container_width=True, key="logout_button"):
             keys_to_clear = ["user", "authenticated", "page", "landing_action", "show_login", "adopt_institution"]
             for key in keys_to_clear:
-                if key in st.session_state:
-                    del st.session_state[key]
+                if key in st.session_state: del st.session_state[key]
             st.success("Logged out successfully!")
-            time.sleep(1)
+            time.sleep(0.8)
             st.rerun()
 
-    # Display selected page based on session state
     current_page = st.session_state.page
     
     if current_page == "Dashboard":
-        if user_type == "admin":
-            admin_dashboard()
-        elif user_type == "school":
-            institution_dashboard()
-        else:
-            st.error("Access denied.")
-    elif current_page == "Plant a Tree":
-        plant_a_tree_section()
-    elif current_page == "Monitoring":
-        monitoring_section() # Use the new monitoring section
+        if user_type == "admin": admin_dashboard()
+        elif user_type == "school": institution_dashboard()
+        else: st.error("Access denied.")
+    elif current_page == "Plant a Tree": plant_a_tree_section()
+    elif current_page == "Monitoring": monitoring_section()
     elif current_page == "Tree Lookup":
-        if user_type == "admin":
-            admin_tree_lookup() # Use the new admin lookup
-        else:
-            st.error("Access denied.")
+        if user_type == "admin": admin_tree_lookup()
+        else: st.error("Access denied.")
     elif current_page == "Reports":
-        if user_type in ["admin", "school"]:
-            reports_page()
-        else:
-            st.error("Access denied.")
-    elif current_page == "Donor Dashboard":
-        donor_dashboard()
-    elif current_page == "Adopt a Tree":
-        donor_dashboard() # Public users can adopt/donate
-    elif current_page == "My Trees":
-        my_trees_page() # For public users who adopted
-    else:
-        st.error("Page not found.")
+        if user_type in ["admin", "school"]: reports_page()
+        else: st.error("Access denied.")
+    elif current_page == "Donor Dashboard": donor_dashboard()
+    elif current_page == "Adopt a Tree": donor_dashboard() # Public users can adopt/donate
+    elif current_page == "My Trees": my_trees_page()
+    else: st.error("Page not found.")
 
 # --- Institution Dashboard ---
 def institution_dashboard():
@@ -989,470 +1008,203 @@ def institution_dashboard():
     header_text = f"🏫 {institution} Dashboard" if institution else "🏫 Institution Dashboard"
     st.markdown(f"<h1 class='header-text'>{header_text}</h1>", unsafe_allow_html=True)
     
-    # Load data
     trees = load_tree_data()
     institution_trees = trees[trees["institution"] == institution]
     
-    # Institution metrics
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("Total Trees", len(institution_trees))
-    
-    with col2:
-        alive_trees = len(institution_trees[institution_trees["status"] == "Alive"])
-        survival_rate = round((alive_trees / len(institution_trees)) * 100, 1) if len(institution_trees) > 0 else 0
-        st.metric("Survival Rate", f"{survival_rate}%")
-    
-    with col3:
-        total_co2 = round(institution_trees["co2_kg"].sum(), 2)
-        st.metric("CO₂ Sequestered", f"{total_co2} kg")
-    
-    with col4:
-        adopted_trees = len(institution_trees[institution_trees["adopter_name"].notna()])
-        st.metric("Adopted Trees", adopted_trees)
-    
-    # Recent plantings
-    st.subheader("Recent Tree Plantings")
-    if not institution_trees.empty:
-        recent_trees = institution_trees.sort_values("date_planted", ascending=False).head(10)
-        st.dataframe(recent_trees[["tree_id", "local_name", "scientific_name", "student_name", "date_planted", "status"]])
-    else:
-        st.info("No trees planted yet. Click on 'Plant a Tree' to get started!")
-    
-    # Tree map
-    st.subheader("Tree Map")
-    if not institution_trees.empty:
-        fig = px.scatter_mapbox(
-            institution_trees,
-            lat="latitude",
-            lon="longitude",
-            hover_name="tree_id",
-            hover_data=["local_name", "student_name", "date_planted"],
-            color="status",
-            color_discrete_map={"Alive": "#2e8b57", "Dead": "#d62728", "Adopted": "#1f77b4"},
-            zoom=10,
-            height=400
-        )
-        fig.update_layout(mapbox_style="open-street-map")
-        fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-        st.plotly_chart(fig)
-    else:
-        st.info("No trees to display on the map.")
+    cols = st.columns(4)
+    metrics_data = [
+        (len(institution_trees), "Total Trees"),
+        (f"{round((len(institution_trees[institution_trees['status'] == 'Alive']) / len(institution_trees)) * 100, 1) if len(institution_trees) > 0 else 0}%", "Survival Rate"),
+        (f"{round(institution_trees['co2_kg'].sum(), 2)} kg", "CO₂ Sequestered"),
+        (len(institution_trees[institution_trees["adopter_name"].notna()]), "Adopted Trees")
+    ]
+    for i, (value, label) in enumerate(metrics_data):
+        with cols[i]:
+            st.markdown(f'<div class="metric-card"><div class="metric-value">{value}</div><div class="metric-label">{label}</div></div>', unsafe_allow_html=True)
 
-# --- REMOVED OLD monitor_trees() FUNCTION ---
-# The functionality is now handled by kobo_monitoring.py
+    tab1, tab2 = st.tabs(["📊 Recent Plantings & Map", "📈 Growth Charts"])
+    with tab1:
+        st.markdown("<h4 style='color: #1D7749; margin-top:1rem; margin-bottom: 0.5rem;'>Recent Tree Plantings</h4>", unsafe_allow_html=True)
+        if not institution_trees.empty:
+            recent_trees_display = institution_trees.sort_values("date_planted", ascending=False).head(10)
+            st.dataframe(recent_trees_display[["tree_id", "local_name", "scientific_name", "student_name", "date_planted", "status"]], use_container_width=True)
+            
+            st.markdown("<h4 style='color: #1D7749; margin-top:1rem; margin-bottom: 0.5rem;'>Tree Map</h4>", unsafe_allow_html=True)
+            fig_map = px.scatter_mapbox(
+                institution_trees, lat="latitude", lon="longitude", hover_name="tree_id",
+                hover_data={"local_name": True, "student_name": True, "date_planted": True, "latitude":False, "longitude":False},
+                color="status", color_discrete_map={"Alive": "#28a745", "Dead": "#dc3545", "Adopted": "#007bff"},
+                zoom=10, height=400
+            )
+            fig_map.update_layout(mapbox_style="carto-positron", margin={"r":0,"t":0,"l":0,"b":0})
+            st.plotly_chart(fig_map, use_container_width=True)
+        else:
+            st.info("No trees planted yet. Click on 'Plant a Tree' to get started!")
+    with tab2:
+        st.markdown("<h4 style='color: #1D7749; margin-top:1rem; margin-bottom: 0.5rem;'>Overall Growth Trends</h4>", unsafe_allow_html=True)
+        # Placeholder for aggregated growth charts - requires more data processing
+        st.info("Aggregated growth charts for the institution will be available here soon.")
 
 # --- Reports Page ---
 def reports_page():
     st.markdown("<h1 class='header-text'>📊 Reports</h1>", unsafe_allow_html=True)
-    
     user_type = st.session_state.user.get("user_type", "")
     institution = st.session_state.user.get("institution", "")
     
-    # Load data
     trees = load_tree_data()
-    
-    # Filter trees based on user type
     if user_type == "admin":
         filtered_trees = trees
-        st.subheader("System-wide Reports")
+        st.markdown("<h4 style='color: #1D7749; margin-bottom: 0.5rem;'>System-wide Reports</h4>", unsafe_allow_html=True)
     elif user_type == "school":
         filtered_trees = trees[trees["institution"] == institution]
-        st.subheader(f"Reports for {institution}")
+        st.markdown(f"<h4 style='color: #1D7749; margin-bottom: 0.5rem;'>Reports for {institution}</h4>", unsafe_allow_html=True)
     else:
         st.error("You don't have permission to view reports.")
         return
     
-    # Date range filter
-    col1, col2 = st.columns(2)
-    with col1:
+    date_cols = st.columns(2)
+    with date_cols[0]:
         start_date = st.date_input("Start Date", datetime.datetime.now() - datetime.timedelta(days=365))
-    with col2:
+    with date_cols[1]:
         end_date = st.date_input("End Date", datetime.datetime.now())
     
-    # Convert to string format for comparison
     start_date_str = start_date.isoformat()
     end_date_str = end_date.isoformat()
-    
-    # Filter by date range
     date_filtered_trees = filtered_trees[
         (filtered_trees["date_planted"] >= start_date_str) & 
         (filtered_trees["date_planted"] <= end_date_str)
     ]
     
-    st.subheader("Summary Statistics")
+    st.markdown("<h5 style='color: #333; margin-top:1rem; margin-bottom: 0.5rem;'>Summary Statistics</h5>", unsafe_allow_html=True)
+    metric_cols = st.columns(3)
+    report_metrics = [
+        (len(date_filtered_trees), "Trees in Period"),
+        (f"{round((len(date_filtered_trees[date_filtered_trees['status'] == 'Alive']) / len(date_filtered_trees)) * 100, 1) if len(date_filtered_trees) > 0 else 0}%", "Survival Rate"),
+        (f"{round(date_filtered_trees['co2_kg'].sum(), 2)} kg", "CO₂ Sequestered")
+    ]
+    for i, (value, label) in enumerate(report_metrics):
+        with metric_cols[i]:
+            st.markdown(f'<div class="metric-card" style="padding:0.8rem;"><div class="metric-value" style="font-size:1.6rem;">{value}</div><div class="metric-label" style="font-size:0.8rem;">{label}</div></div>', unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Trees Planted in Period", len(date_filtered_trees))
-    with col2:
-        alive_trees = len(date_filtered_trees[date_filtered_trees["status"] == "Alive"])
-        survival_rate = round((alive_trees / len(date_filtered_trees)) * 100, 1) if len(date_filtered_trees) > 0 else 0
-        st.metric("Survival Rate", f"{survival_rate}%")
-    with col3:
-        total_co2 = round(date_filtered_trees["co2_kg"].sum(), 2)
-        st.metric("CO₂ Sequestered", f"{total_co2} kg")
+    st.markdown("<h5 style='color: #333; margin-top:1rem; margin-bottom: 0.5rem;'>Tree Data Table</h5>", unsafe_allow_html=True)
+    st.dataframe(date_filtered_trees, use_container_width=True)
     
-    st.subheader("Tree Data Table")
-    st.dataframe(date_filtered_trees)
-    
-    # Download button
     csv = date_filtered_trees.to_csv(index=False).encode('utf-8')
     st.download_button(
         label="Download Report as CSV",
         data=csv,
         file_name=f"tree_report_{start_date_str}_to_{end_date_str}.csv",
         mime="text/csv",
+        use_container_width=True
     )
 
+# --- Admin Dashboard ---
 def admin_dashboard():
-    st.markdown("<h1 class='header-text'>🌳 Administrator Dashboard</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='header-text'>👑 Admin Dashboard</h1>", unsafe_allow_html=True)
+    trees = load_tree_data()
+    conn_users = sqlite3.connect(SQLITE_DB)
+    users_df = pd.read_sql("SELECT * FROM users", conn_users)
+    conn_users.close()
     
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🌿 Manage Trees", "🌳 Manage Species", "👥 Manage Users", "💰 Payments", "📊 Analytics"])
-    
-    # --- Manage Trees ---
-    with tab1:
-        st.subheader("All Trees")
-        trees = load_tree_data()
-        st.dataframe(trees)
-        
-        st.subheader("Add/Edit Tree")
-        with st.form("admin_tree_form"):
-            col1, col2 = st.columns(2)
-            with col1:
-                tree_id = st.text_input("Tree ID*").strip()
-            
-            if tree_id:
-                tree_data = trees[trees['tree_id'] == tree_id]
-                
-                if not tree_data.empty:
-                    tree = tree_data.iloc[0]
-                    institution = tree['institution']
-                    student = tree['student_name']
-                    local_name = tree['local_name']
-                    scientific_name = tree['scientific_name']
-                    
-                    st.text_input("Institution Name", value=institution, disabled=True)
-                    st.text_input("Student Name", value=student, disabled=True)
-                    st.text_input("Local Name", value=local_name, disabled=True)
-                    
-                    # Editable by Admin
-                    scientific_name = st.text_input("Scientific Name", value=scientific_name)  
-                    
-                    county = tree.get('county', '')
-                    sub_county = tree.get('sub_county', '')
-                    ward = tree.get('ward', '')
-                    
-                    st.text_input("County", value=county, disabled=True)
-                    st.text_input("Sub-County", value=sub_county, disabled=True)
-                    st.text_input("Ward", value=ward, disabled=True)
-                    
-                    status = st.selectbox("Status", ["Alive", "Dead", "Adopted"], index=["Alive", "Dead", "Adopted"].index(tree['status']) if tree['status'] in ["Alive", "Dead", "Adopted"] else 0)
-                else:
-                    st.error(f"Tree ID {tree_id} not found")
-            else:
-                st.info("Enter a Tree ID to edit an existing tree")
-            
-            # Add a single submit button at the end of the form
-            submit_button = st.form_submit_button("Update Tree" if tree_id else "Search Tree")
-            
-            # Process form submission after the button
-            if submit_button and tree_id:
-                tree_data = trees[trees['tree_id'] == tree_id]
-                if not tree_data.empty:
-                    trees.loc[trees['tree_id'] == tree_id, 'scientific_name'] = scientific_name
-                    trees.loc[trees['tree_id'] == tree_id, 'status'] = status
-                    
-                    if save_tree_data(trees):
-                        st.success(f"Tree {tree_id} updated successfully!")
-                        st.rerun()
+    st.markdown("<h4 style='color: #1D7749; margin-bottom: 0.5rem;'>System Overview</h4>", unsafe_allow_html=True)
+    admin_metric_cols = st.columns(4)
+    admin_metrics = [
+        (len(trees), "Total Trees"),
+        (f"{round((len(trees[trees['status'] == 'Alive']) / len(trees)) * 100, 1) if len(trees) > 0 else 0}%", "Overall Survival"),
+        (f"{round(trees['co2_kg'].sum(), 2)} kg", "Total CO₂"),
+        (len(users_df), "Registered Users")
+    ]
+    for i, (value, label) in enumerate(admin_metrics):
+        with admin_metric_cols[i]:
+            st.markdown(f'<div class="metric-card"><div class="metric-value">{value}</div><div class="metric-label">{label}</div></div>', unsafe_allow_html=True)
 
-    # --- Manage Species ---
-    with tab2:
-        st.subheader("All Species")
-        species_data = load_species_data()
-        st.dataframe(species_data)
+    tab_inst, tab_users = st.tabs(["🏢 Institution Performance", "👥 User Management"])
+    with tab_inst:
+        st.markdown("<h5 style='color: #333; margin-top:1rem; margin-bottom: 0.5rem;'>Institution Performance</h5>", unsafe_allow_html=True)
+        institution_stats = trees.groupby("institution").agg(
+            total_trees=pd.NamedAgg(column="tree_id", aggfunc="count"),
+            alive_trees=pd.NamedAgg(column="status", aggfunc=lambda x: (x == "Alive").sum()),
+            total_co2=pd.NamedAgg(column="co2_kg", aggfunc="sum")
+        ).reset_index()
+        institution_stats["survival_rate"] = round((institution_stats["alive_trees"] / institution_stats["total_trees"]) * 100, 1).fillna(0)
         
-        st.subheader("Add New Species")
-        with st.form("add_species_form"):
-            new_scientific_name = st.text_input(
-                "Scientific Name*",
-                help="Latin name, e.g., Acacia spp."
-            )
-            
-            new_local_name = st.text_input(
-                "Local Name*",
-                help="Common name, e.g., Acacia"
-            )
-            
-            new_wood_density = st.number_input(
-                "Wood Density",
-                min_value=0.1,
-                max_value=1.5,
-                value=0.6,
-                step=0.05,
-                help="Wood density in g/cm³, used for CO₂ calculations"
-            )
-            
-            new_benefits = st.text_area(
-                "Benefits/Ecological Importance*",
-                help="Describe the benefits of this species"
-            )
-            
-            if st.form_submit_button("Add Species"):
-                if new_local_name and new_scientific_name and new_benefits:
-                    # Check if species already exists
-                    existing_species = species_data[
-                        (species_data["scientific_name"].str.lower() == new_scientific_name.lower()) | 
-                        (species_data["local_name"].str.lower() == new_local_name.lower())
-                    ]
-                    
-                    if not existing_species.empty:
-                        st.error("Species with this scientific or local name already exists")
-                    else:
-                        new_species = pd.DataFrame([{
-                            "scientific_name": new_scientific_name,
-                            "local_name": new_local_name,
-                            "wood_density": new_wood_density,
-                            "benefits": new_benefits
-                        }])
-                        
-                        updated_species = pd.concat([species_data, new_species], ignore_index=True)
-                        if save_species_data(updated_species):
-                            st.success(f"New species {new_scientific_name} added successfully!")
-                            st.rerun()
-                else:
-                    st.error("Please fill all required fields (marked with *)")
-        
-        st.subheader("Bulk Import Species")
-        uploaded_file = st.file_uploader(
-            "Upload CSV file with species data",
-            type=["csv"],
-            help="CSV should have columns: scientific_name, local_name, wood_density, benefits"
-        )
-        
-        if uploaded_file is not None:
-            try:
-                new_species = pd.read_csv(uploaded_file)
-                required_columns = ["scientific_name", "local_name", "wood_density", "benefits"]
-                
-                if all(col in new_species.columns for col in required_columns):
-                    st.success("CSV file parsed successfully!")
-                    st.dataframe(new_species.head())
-                    
-                    if st.button("Import Species"):
-                        # Merge with existing data
-                        updated_species = pd.concat([species_data, new_species], ignore_index=True)
-                        # Remove duplicates
-                        updated_species = updated_species.drop_duplicates(
-                            subset=["scientific_name"],
-                            keep="last"
-                        )
-                        
-                        if save_species_data(updated_species):
-                            st.success(f"Imported {len(new_species)} species successfully!")
-                            st.rerun()
-                else:
-                    st.error("CSV file is missing required columns")
-            except Exception as e:
-                st.error(f"Error reading CSV file: {str(e)}")
+        fig_inst = px.bar(institution_stats.sort_values("total_trees", ascending=False),
+                     x="institution", y="total_trees", title="Trees Planted by Institution",
+                     color="survival_rate", color_continuous_scale=px.colors.sequential.Greens)
+        fig_inst.update_layout(title_x=0.5)
+        st.plotly_chart(fig_inst, use_container_width=True)
+        st.dataframe(institution_stats, use_container_width=True)
 
-    # --- Manage Users ---
-    with tab3:
-        st.subheader("User Management")
-        
-        conn = sqlite3.connect(SQLITE_DB)
-        try:
-            users = pd.read_sql("SELECT username, user_type, institution, is_test_user FROM users", conn)
-            st.dataframe(users)
-            
-            st.subheader("Add New User")
+    with tab_users:
+        st.markdown("<h5 style='color: #333; margin-top:1rem; margin-bottom: 0.5rem;'>User Management</h5>", unsafe_allow_html=True)
+        st.dataframe(users_df[["username", "user_type", "institution"]], use_container_width=True)
+        with st.expander("Add New User"):
             with st.form("add_user_form"):
-                username = st.text_input("Username*").strip()
-                password = st.text_input("Password*", type="password").strip()
-                user_type = st.selectbox("User Type", list(USER_TYPES.keys()))
-                institution = st.text_input("Institution (for institution users)").strip()
-                is_test_user = st.checkbox("Is this a test user?")
-                
-                if st.form_submit_button("Add User"):
-                    if username and password:
+                new_username = st.text_input("Username")
+                new_password = st.text_input("Password", type="password")
+                new_user_type = st.selectbox("User Type", list(USER_TYPES.keys()))
+                new_institution = st.text_input("Institution (if applicable)")
+                if st.form_submit_button("Add User", use_container_width=True):
+                    if not new_username or not new_password:
+                        st.error("Username and password are required")
+                    else:
                         try:
-                            conn.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?)", 
-                                        (username, hash_password(password), user_type, institution, 1 if is_test_user else 0))
+                            conn = sqlite3.connect(SQLITE_DB)
+                            c = conn.cursor()
+                            c.execute("INSERT INTO users (username, password, user_type, institution) VALUES (?, ?, ?, ?)", 
+                                     (new_username, hash_password(new_password), new_user_type, new_institution))
                             conn.commit()
-                            st.success("User added successfully!")
+                            conn.close()
+                            st.success(f"User {new_username} added!")
                             st.rerun()
-                        except sqlite3.IntegrityError:
-                            st.error("Username already exists")
-            
-            st.subheader("Remove User")
-            username_to_remove = st.selectbox("Select a user to remove", users["username"].values)
-            
-            if st.button("Remove Selected User"):
-                try:
-                    conn.execute("DELETE FROM users WHERE username = ?", (username_to_remove,))
-                    conn.commit()
-                    st.success(f"User {username_to_remove} removed successfully!")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error removing user: {e}")
-                    
-        except Exception as e:
-            st.error(f"Database error: {str(e)}")
-        finally:
-            conn.close()
-
-    # --- Payment Management ---
-    with tab4:
-        st.subheader("Payment Records")
-        
-        conn = sqlite3.connect(SQLITE_DB)
-        try:
-            payments = pd.read_sql("SELECT * FROM payments", conn)
-            
-            if not payments.empty:
-                st.dataframe(payments)
-                
-                # Payment statistics
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("Total Payments", f"${payments['amount'].sum():.2f}")
-                with col2:
-                    st.metric("Successful Transactions", len(payments[payments['payment_status'] == 'approved']))
-                
-                # Export option
-                if st.button("Export Payment Records"):
-                    csv = payments.to_csv(index=False)
-                    st.download_button(
-                        "Download CSV",
-                        data=csv,
-                        file_name="tree_payments.csv",
-                        mime="text/csv"
-                    )
-            else:
-                st.info("No payment records found")
-        except Exception as e:
-            st.error(f"Error loading payments: {str(e)}")
-        finally:
-            conn.close()
-
-    # --- Analytics Dashboard ---
-    with tab5:
-        st.subheader("Analytics Dashboard")
-        trees = load_tree_data()
-        
-        # Get unique institutions and adopted trees
-        unique_institutions = trees["institution"].nunique()
-        adopted_trees = len(trees[trees["adopter_name"].notna()])
-        
-        # Metrics in cards
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown(f"""
-            <div class="card">
-                <h3>🏫 Institutions Supported</h3>
-                <h2>{unique_institutions}</h2>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown(f"""
-            <div class="card">
-                <h3>🌳 Total Trees</h3>
-                <h2>{len(trees)}</h2>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown(f"""
-            <div class="card">
-                <h3>🤝 Adopted Trees</h3>
-                <h2>{adopted_trees}</h2>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown(f"""
-            <div class="card">
-                <h3>🌍 CO₂ Sequestered</h3>
-                <h2>{round(trees["co2_kg"].sum(), 2)} kg</h2>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.subheader("CO₂ Sequestration by Institution")
-        co2_by_institution = trees.groupby("institution")["co2_kg"].sum().reset_index()
-        fig = px.bar(co2_by_institution, x="institution", y="co2_kg", 
-                     title="CO₂ Sequestration by Institution",
-                     color="co2_kg",
-                     color_continuous_scale="Greens")
-        st.plotly_chart(fig)
-        
-        st.subheader("Tree Status Distribution")
-        status_counts = trees["status"].value_counts().reset_index()
-        fig = px.pie(status_counts, values="count", names="status", 
-                     title="Tree Status Distribution",
-                     color_discrete_sequence=px.colors.qualitative.Pastel)
-        st.plotly_chart(fig)
-        
-        st.subheader("Top Tree Species")
-        species_counts = trees["scientific_name"].value_counts().reset_index().head(10)
-        fig = px.bar(species_counts, x="scientific_name", y="count",
-                    title="Top 10 Tree Species",
-                    labels={"scientific_name": "Scientific Name", "count": "Number of Trees"})
-        st.plotly_chart(fig)
-add_branding_footer()
-
+                        except sqlite3.IntegrityError: st.error(f"User {new_username} already exists.")
+                        except Exception as e: st.error(f"Error: {e}")
 
 # --- My Trees Page (for public users who adopted) ---
 def my_trees_page():
     st.markdown("<h1 class='header-text'>💚 My Adopted Trees</h1>", unsafe_allow_html=True)
-    
     donor_email = st.session_state.user.get("email", "")
     
     if not donor_email:
-        donor_email = st.text_input("Enter your email to view your adopted trees:")
+        donor_email = st.text_input("Enter your email to view your adopted trees:", key="donor_email_my_trees")
         if not donor_email:
             st.info("Please enter the email address you used for adoption.")
             return
             
-    # Load adopted trees for this donor
     conn = sqlite3.connect(SQLITE_DB)
     try:
-        adopted_trees = pd.read_sql("""
+        adopted_trees_df = pd.read_sql("""
             SELECT t.* FROM trees t 
             JOIN payments p ON t.tree_id = p.tree_id 
             WHERE p.donor_email = ? AND p.payment_status = 'approved'
         """, conn, params=(donor_email,))
     except Exception as e:
         st.error(f"Error loading your trees: {e}")
-        adopted_trees = pd.DataFrame()
+        adopted_trees_df = pd.DataFrame()
     finally:
         conn.close()
         
-    if adopted_trees.empty:
+    if adopted_trees_df.empty:
         st.warning("No adopted trees found for this email address.")
         return
         
-    st.success(f"Found {len(adopted_trees)} adopted tree(s) for {donor_email}")
+    st.success(f"Found {len(adopted_trees_df)} adopted tree(s) for {donor_email}")
     
-    for _, tree in adopted_trees.iterrows():
-        with st.expander(f"🌳 Tree {tree['tree_id']} - {tree['local_name']} ({tree['institution']})"):
-            col1, col2 = st.columns(2)
+    for _, tree_row in adopted_trees_df.iterrows():
+        with st.expander(f"🌳 Tree {tree_row['tree_id']} - {tree_row['local_name']} ({tree_row['institution']})"):
+            tree_cols = st.columns([2,1]) # Details on left, growth viz on right
+            with tree_cols[0]:
+                st.markdown(f"""**Species:** {tree_row['local_name']} ({tree_row['scientific_name']})<br>
+                               **Planted on:** {tree_row['date_planted']}<br>
+                               **Status:** {tree_row['status']}<br>
+                               **CO₂ Sequestered:** {tree_row['co2_kg']:.2f} kg""", unsafe_allow_html=True)
+            with tree_cols[1]:
+                display_tree_growth(tree_row["height_m"])
             
-            with col1:
-                st.write(f"**Species:** {tree['local_name']} ({tree['scientific_name']})")
-                st.write(f"**Planted on:** {tree['date_planted']}")
-                st.write(f"**Status:** {tree['status']}")
-                st.write(f"**CO₂ Sequestered:** {tree['co2_kg']} kg")
-            
-            with col2:
-                # Display tree growth visualization
-                display_tree_growth(tree["height_m"])
-            
-            # Monitoring history
-            monitoring_history = load_monitoring_history(tree['tree_id'])
-            if not monitoring_history.empty:
-                st.subheader("Recent Monitoring")
-                st.dataframe(monitoring_history.head(5)[["monitor_date", "monitor_status", "height_m", "co2_kg"]])
+            monitoring_hist_df = load_monitoring_history(tree_row['tree_id'])
+            if not monitoring_hist_df.empty:
+                st.markdown("<h6 style='margin-top:0.5rem; margin-bottom:0.3rem;'>Recent Monitoring</h6>", unsafe_allow_html=True)
+                st.dataframe(monitoring_hist_df.head(3)[["monitor_date", "monitor_status", "height_m", "co2_kg"]], use_container_width=True, hide_index=True)
 
 # --- Main Execution ---
 if __name__ == "__main__":
